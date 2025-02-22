@@ -6,8 +6,11 @@ import json
 from pathlib import Path
 from sklearn.feature_extraction.text import CountVectorizer
 from datetime import datetime, timedelta
+from scipy.sparse import find
 
 import panel as pn
+pn.extension('tabulator')
+
 import param
 from bokeh.palettes import Spectral6
 import holoviews as hv
@@ -30,9 +33,9 @@ class MTGAnalyzer(param.Parameterized):
     def _initialize_card_list(self):
         # Get unique cards from feature names, removing _SB suffix
         self.card_options = sorted(list(set(
-            [name.replace('_SB', '') for name in self.feature_names]
+            [name.replace('_SB', '') for name in self.feature_names.keys()]
         )))
-        
+
     @param.depends('selected_cards', 'cluster_view', 'date_range')
     def get_deck_view(self):
         if self.cluster_view:
@@ -53,9 +56,13 @@ class MTGAnalyzer(param.Parameterized):
         # Group by cluster and calculate statistics
         cluster_stats = filtered_df.groupby('Cluster').agg({
             'Player': 'count',
-            'Wins': ['sum', 'mean'],
-            'Losses': ['sum', 'mean']
+            'Wins': 'sum',
+            'Losses': 'sum',
         }).round(2)
+        cluster_stats['WR'] = (cluster_stats['Wins']/(cluster_stats['Wins']+cluster_stats['Losses'])).round(2)
+        cluster_stats.rename(columns={'Player':'Players'}, inplace=True)
+
+        cluster_stats = cluster_stats.sort_values(by='Players', ascending=False)
         
         # Create a tabulator widget
         return pn.widgets.Tabulator(
@@ -68,9 +75,9 @@ class MTGAnalyzer(param.Parameterized):
     def _get_card_presence_view(self):
         # Filter decks containing selected cards
         mask = np.ones(len(self.df), dtype=bool)
-        for card in self.param.selected_cards:
-            card_mask = (self.X[:, self.feature_names == card].sum(axis=1) > 0) | \
-                       (self.X[:, self.feature_names == f"{card}_SB"].sum(axis=1) > 0)
+        for card in self.selected_cards:
+            card_mask = (self.X[:, self.feature_names[card]].sum(axis=1) > 0) | \
+                       (self.X[:, self.feature_names[f"{card}_SB"]].sum(axis=1) > 0)
             mask &= card_mask.A1
             
         filtered_df = self.df[mask]
@@ -83,45 +90,54 @@ class MTGAnalyzer(param.Parameterized):
     
     @param.depends('selected_card', 'show_correlation')
     def get_card_analysis(self):
-        if not self.param.selected_card or not self.param.show_correlation:
+        if not self.selected_card or not self.show_correlation:
             return pn.pane.Markdown("Select a card and enable correlation view to see analysis")
             
         # Calculate correlation matrix for main/sideboard copies
-        mb_idx = self.feature_names == self.param.selected_card
-        sb_idx = self.feature_names == f"{self.selected_card}_SB"
+        mb_idx = self.feature_names.get(self.selected_card)
+        sb_idx = self.feature_names.get(f"{self.selected_card}_SB")
         
-        if not any(mb_idx) and not any(sb_idx):
+        if (mb_idx is None) and (sb_idx is None):
             return pn.pane.Markdown("Card not found in dataset")
-            
-        deck_copies = self.X[:, mb_idx | sb_idx].toarray()
         
-        # Create correlation heatmap
-        corr_matrix = np.corrcoef(deck_copies.T)
-        
-        # Create heatmap using HoloViews
-        heatmap = hv.HeatMap(
-            ((range(deck_copies.shape[1]), range(deck_copies.shape[1]), corr_matrix)),
-            kdims=['Main Board Copies', 'Sideboard Copies'],
-            vdims=['Correlation']
+        if mb_idx is None:
+            mb_copies = [np.nan]
+            _, _, sb_copies = find(self.X[:, sb_idx])
+        elif sb_idx is None:
+            sb_copies = [np.nan]
+            _, _, mb_copies = find(self.X[:, mb_idx])
+        else:
+            mb_d, _ = self.X[:, mb_idx].nonzero()
+            sb_d, _ = self.X[:, sb_idx].nonzero()
+            d = set(np.concatenate([mb_d, sb_d]))
+            mb_copies = self.X[list(d), mb_idx].toarray().flatten()
+            sb_copies = self.X[list(d), sb_idx].toarray().flatten()
+
+        bins = np.arange(-0.5, np.nanmax([np.nanmax(mb_copies), np.nanmax(sb_copies), 5]), 1)
+
+        return hv.Layout(hv.Histogram(
+            np.histogram(mb_copies, bins)[::-1]
         ).opts(
             width=400,
-            height=400,
-            cmap='RdBu_r',
-            colorbar=True,
-            title=f"Copy Count Correlation for {self.selected_card}"
-        )
-        
-        return heatmap
+            height=200,
+        ) + hv.Histogram(
+            np.histogram(sb_copies, bins)[::-1]
+        ).opts(
+            width=400,
+            height=200,
+        )).cols(1)
     
     @param.depends('selected_card')
     def get_winrate_analysis(self):
-        if not self.param.selected_card:
+        if not self.selected_card:
             return pn.pane.Markdown("Select a card to see win rate analysis")
             
         # Calculate win rates by copy count
-        mb_idx = self.feature_names == self.param.selected_card
-        if not any(mb_idx):
+        
+        if not self.selected_card in self.feature_names:
             return pn.pane.Markdown("Card not found in dataset")
+        
+        mb_idx = self.feature_names[self.selected_card]
             
         copy_counts = self.X[:, mb_idx].toarray()
         
@@ -151,10 +167,11 @@ def create_dashboard(df, X, vocabulary):
     analyzer = MTGAnalyzer(df, X, vocabulary)
     
     # Create card selection widget
-    card_select = pn.widgets.MultiSelect(
+    card_select = pn.widgets.MultiChoice(
         name='Required Cards',
         options=analyzer.card_options,
         value=[],
+        placeholder='Search for cards...',
         sizing_mode='stretch_width'
     )
     
@@ -177,6 +194,7 @@ def create_dashboard(df, X, vocabulary):
     card_analysis = pn.widgets.Select(
         name='Analyze Card',
         options=[''] + analyzer.card_options,
+        # value=[''],##
         sizing_mode='stretch_width'
     )
     
@@ -186,15 +204,16 @@ def create_dashboard(df, X, vocabulary):
     )
     
     # Link widgets to analyzer parameters
-    card_select.link(analyzer, callbacks={'value': 'selected_cards'})
-    view_toggle.link(analyzer, callbacks={'value': 'cluster_view'})
-    card_analysis.link(analyzer, callbacks={'value': 'selected_card'})
-    correlation_toggle.link(analyzer, callbacks={'value': 'show_correlation'})
-    date_range.link(analyzer, callbacks={'value': 'date_range'})
+    card_select.link(analyzer, value='selected_cards')
+    card_analysis.link(analyzer, value='selected_card')
+    date_range.link(analyzer, value='date_range')
+
+    correlation_toggle.link(analyzer, value='show_correlation')
+    view_toggle.link(analyzer, value='cluster_view')
     
-    # Create layout
+    # Create layout groups
     controls = pn.Column(
-        "## MTG Deck Analysis",
+        pn.pane.Markdown("## MTG Deck Analysis"),
         card_select,
         date_range,
         view_toggle,
@@ -214,32 +233,20 @@ def create_dashboard(df, X, vocabulary):
         sizing_mode='stretch_both'
     )
     
-    dashboard = pn.Template(
-        """
-        {% extends base %}
-        {% block contents %}
-        <div class="container-fluid">
-            <div class="row">
-                <div class="col-md-3">
-                    {{ controls }}
-                </div>
-                <div class="col-md-5">
-                    {{ main_view }}
-                </div>
-                <div class="col-md-4">
-                    {{ analysis_view }}
-                </div>
-            </div>
-        </div>
-        {% endblock %}
-        """
+    # Create template
+    template = pn.template.FastListTemplate(
+        title="MTG Deck Analysis",
+        sidebar=[controls],
+        main=[
+            pn.Row(
+                main_view,
+                analysis_view,
+                sizing_mode='stretch_width'
+            )
+        ],
     )
     
-    dashboard.add_variable('controls', controls)
-    dashboard.add_variable('main_view', main_view)
-    dashboard.add_variable('analysis_view', analysis_view)
-    
-    return dashboard
+    return template
 
 # Load and process data
 def load_data(data_path='processed_data', lookback_days=365):
@@ -271,10 +278,11 @@ def load_data(data_path='processed_data', lookback_days=365):
 
     # Filter to recent data
     cutoff_date = pd.to_datetime('today') - pd.Timedelta(days=lookback_days) 
-    df = df[df['Date'] >= cutoff_date]
-    
+
     # Load card vectors
-    X = scipy.sparse.load_npz(Path(data_path) / 'card_vectors.npz')
+    X = scipy.sparse.load_npz(Path(data_path) / 'card_vectors.npz')[df['Date'] >= cutoff_date]
+
+    df = df[df['Date'] >= cutoff_date]
     
     # Load and reconstruct vectorizer
     with open(Path(data_path) / 'vectorizer.json', 'r') as f:
@@ -284,7 +292,7 @@ def load_data(data_path='processed_data', lookback_days=365):
     # vectorizer.vocabulary_ = vectorizer_data['vocabulary']
     # vectorizer.fixed_vocabulary_ = True
     
-    return df, X, np.array(list(vectorizer_data['vocabulary'].keys()))
+    return df, X, vectorizer_data['vocabulary']
 
 # if __name__ == '__main__':
 df, X, vocabulary = load_data()

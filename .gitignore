@@ -1,3 +1,4 @@
 .ipynb_*
 processed_data/*
+__pycache__/*
 *.ipynb

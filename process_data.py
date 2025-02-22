@@ -73,9 +73,12 @@ def process_mtg_data(lookback_days=365, fmt='modern'):
         standings_df = pd.DataFrame(data['Standings'])
         if standings_df.shape[0]:
             deck_df = deck_df.join(standings_df.set_index('Player'), on='Player')
+            deck_df['League'] = False
         else:
             deck_df['Wins'] = 5
             deck_df['Losses'] = 0
+            deck_df['League'] = True
+
         
         # Set date from path if missing
         deck_df['Date'] = f'{path.parent.parent.parent.name}-{path.parent.parent.name}-{path.parent.name}'
@@ -100,11 +103,11 @@ def process_mtg_data(lookback_days=365, fmt='modern'):
         """Convert deck dictionary into list of card strings."""
         output = []
         for card in deck['Mainboard']:
-            if card['CardName'] in card_list:
-                if 'Land' not in j[card['CardName']][0]['type']:
-                    output += [card['CardName']] * card['Count']
-            else:
-                output += [card['CardName']] * card['Count']
+            # if card['CardName'] in card_list:
+            #     if 'Land' not in j[card['CardName']][0]['type']:
+            #         output += [card['CardName']] * card['Count']
+            # else:
+            output += [card['CardName']] * card['Count']
         for card in deck['Sideboard']:
             output += [card['CardName']+'_SB'] * card['Count']
         return output
@@ -222,4 +225,4 @@ def process_mtg_data(lookback_days=365, fmt='modern'):
     print('Data saved, done')
 
 if __name__ == '__main__':
-    process_mtg_data()
+    process_mtg_data()#lookback_days=30)
