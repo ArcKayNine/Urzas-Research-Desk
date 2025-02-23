@@ -196,7 +196,7 @@ def process_mtg_data(lookback_days=365, fmt='modern'):
     df['Date'] = df['Date'].astype(str)
     # Save processed data
     output_data = {
-        'decks': df[['Player', 'Wins', 'Losses', 'Date', 'Tournament']].to_dict('records'),
+        'decks': df[['Player', 'Wins', 'Losses', 'Date', 'Tournament', 'League']].to_dict('records'),
         'clusters': cluster_labels.tolist(),
         'cluster_info': cluster_representatives,
         'feature_names': vectorizer.get_feature_names_out().tolist()

@@ -18,10 +18,13 @@ hv.extension('bokeh')
 
 class MTGAnalyzer(param.Parameterized):
     selected_cards = param.List(default=[], doc="Cards required in deck")
+    excluded_cards = param.List(default=[], doc="Cards excluded from deck")
     cluster_view = param.Boolean(default=True, doc="Show cluster view instead of card presence view")
     show_correlation = param.Boolean(default=False, doc="Show correlation heatmap for selected card")
     selected_card = param.String(default='', doc="Card to analyze in detail")
     date_range = param.DateRange(default=None, doc="Date range for analysis")
+    valid_rows = param.Array(default=np.array([]), doc="Selected indices")
+    valid_wr_rows = param.Array(default=np.array([]), doc="Selected indices with valid wr")
     
     def __init__(self, df, card_vectors, vocabulary, **params):
         super().__init__(**params)
@@ -29,12 +32,106 @@ class MTGAnalyzer(param.Parameterized):
         self.X = card_vectors
         self.feature_names = vocabulary
         self._initialize_card_list()
+        self.find_valid_rows()
         
     def _initialize_card_list(self):
         # Get unique cards from feature names, removing _SB suffix
         self.card_options = sorted(list(set(
             [name.replace('_SB', '') for name in self.feature_names.keys()]
         )))
+
+    @param.depends('date_range', 'selected_cards', 'excluded_cards')
+    def find_valid_rows(self):
+        """
+        Find row indices where specified logical combinations of column pairs exist.
+        """
+
+        row_mask = np.ones(self.X.shape[0], dtype=bool)
+        
+        for pair_idx, pair in enumerate(
+            [(self.feature_names.get(c), self.feature_names.get(f"{c}_SB")) for c in self.selected_cards]
+            # + [(self.feature_names.get(self.selected_card), self.feature_names.get(f"{self.selected_card}_SB"))]
+        ):
+            # Check pair format
+            if not isinstance(pair, (list, tuple)) or len(pair) != 2:
+                raise ValueError(f"Each pair must be a tuple/list of length 2. Error in pair {pair_idx}: {pair}")
+            
+            col1, col2 = pair
+            pair_rows = set()
+            
+            # Handle col1
+            if col1 is not None:
+                if not isinstance(col1, (int, np.integer)):
+                    raise TypeError(f"Column index must be integer or None. Got {type(col1)} for column 1 in pair {pair_idx}")
+                if col1 < 0 or col1 >= self.X.shape[1]:
+                    raise ValueError(f"Column index {col1} out of bounds for matrix with {self.X.shape[1]} columns")
+                pair_rows.update(self.X.getcol(col1).nonzero()[0])
+                
+            # Handle col2
+            if col2 is not None:
+                if not isinstance(col2, (int, np.integer)):
+                    raise TypeError(f"Column index must be integer or None. Got {type(col2)} for column 2 in pair {pair_idx}")
+                if col2 < 0 or col2 >= self.X.shape[1]:
+                    raise ValueError(f"Column index {col2} out of bounds for matrix with {self.X.shape[1]} columns")
+                pair_rows.update(self.X.getcol(col2).nonzero()[0])
+            
+            # If both columns in a pair are None, skip this pair
+            if col1 is None and col2 is None:
+                continue
+                
+            # Create mask for current pair
+            current_mask = np.zeros(self.X.shape[0], dtype=bool)
+            current_mask[list(pair_rows)] = True
+            
+            # Update overall mask (AND condition)
+            row_mask &= current_mask
+            
+        for pair_idx, pair in enumerate(
+            [(self.feature_names.get(c), self.feature_names.get(f"{c}_SB")) for c in self.excluded_cards]
+        ):
+            # Check pair format
+            if not isinstance(pair, (list, tuple)) or len(pair) != 2:
+                raise ValueError(f"Each pair must be a tuple/list of length 2. Error in pair {pair_idx}: {pair}")
+            
+            col1, col2 = pair
+            pair_rows = set()
+            
+            # Handle col1
+            if col1 is not None:
+                if not isinstance(col1, (int, np.integer)):
+                    raise TypeError(f"Column index must be integer or None. Got {type(col1)} for column 1 in pair {pair_idx}")
+                if col1 < 0 or col1 >= self.X.shape[1]:
+                    raise ValueError(f"Column index {col1} out of bounds for matrix with {self.X.shape[1]} columns")
+                pair_rows.update(self.X.getcol(col1).nonzero()[0])
+                
+            # Handle col2
+            if col2 is not None:
+                if not isinstance(col2, (int, np.integer)):
+                    raise TypeError(f"Column index must be integer or None. Got {type(col2)} for column 2 in pair {pair_idx}")
+                if col2 < 0 or col2 >= self.X.shape[1]:
+                    raise ValueError(f"Column index {col2} out of bounds for matrix with {self.X.shape[1]} columns")
+                pair_rows.update(self.X.getcol(col2).nonzero()[0])
+            
+            # If both columns in a pair are None, skip this pair
+            if col1 is None and col2 is None:
+                continue
+                
+            # Create mask for current pair
+            current_mask = np.zeros(self.X.shape[0], dtype=bool)
+            current_mask[list(pair_rows)] = True
+            
+            # Update overall mask (AND condition)
+            row_mask &= ~current_mask
+
+        # Add time bounds filter
+        if self.param.date_range.bounds:
+            row_mask &= self.param.df['Date'].values >= self.param.date_range.bounds[0]
+            if self.param.date_range.bounds[1]:
+                row_mask &= self.df['Date'].values <= self.param.date_range.bounds[1]
+        
+        # Return row indices that satisfy all conditions
+        self.valid_rows = np.where(row_mask)[0]
+        self.valid_wr_rows = np.where(row_mask & ~self.df['League'])[0]
 
     @param.depends('selected_cards', 'cluster_view', 'date_range')
     def get_deck_view(self):
@@ -87,8 +184,8 @@ class MTGAnalyzer(param.Parameterized):
             page_size=10,
             sizing_mode='stretch_width'
         )
-    
-    @param.depends('selected_card', 'show_correlation')
+     
+    @param.depends('selected_card', 'show_correlation', 'valid_rows')
     def get_card_analysis(self):
         if not self.selected_card or not self.show_correlation:
             return pn.pane.Markdown("Select a card and enable correlation view to see analysis")
@@ -102,33 +199,40 @@ class MTGAnalyzer(param.Parameterized):
         
         if mb_idx is None:
             mb_copies = [np.nan]
-            _, _, sb_copies = find(self.X[:, sb_idx])
+            _, _, sb_copies = find(self.X[self.valid_rows][:, sb_idx])
+            n_decks = sb_copies.shape[0]
         elif sb_idx is None:
             sb_copies = [np.nan]
-            _, _, mb_copies = find(self.X[:, mb_idx])
+            _, _, mb_copies = find(self.X[self.valid_rows][:, mb_idx])
+            n_decks = mb_copies.shape[0]
         else:
-            mb_d, _ = self.X[:, mb_idx].nonzero()
-            sb_d, _ = self.X[:, sb_idx].nonzero()
+            mb_d, _ = self.X[self.valid_rows][:, mb_idx].nonzero()
+            sb_d, _ = self.X[self.valid_rows][:, sb_idx].nonzero()
             d = set(np.concatenate([mb_d, sb_d]))
             mb_copies = self.X[list(d), mb_idx].toarray().flatten()
             sb_copies = self.X[list(d), sb_idx].toarray().flatten()
+            n_decks = len(d)
 
         bins = np.arange(-0.5, np.nanmax([np.nanmax(mb_copies), np.nanmax(sb_copies), 5]), 1)
 
-        return hv.Layout(hv.Histogram(
-            np.histogram(mb_copies, bins)[::-1]
-        ).opts(
-            width=400,
-            height=200,
-        ) + hv.Histogram(
-            np.histogram(sb_copies, bins)[::-1]
-        ).opts(
-            width=400,
-            height=200,
-        )).cols(1)
+        return pn.Column(
+            pn.pane.Markdown(f"{self.selected_card} appears in {n_decks} decks"),
+            hv.Layout(hv.Histogram(
+                np.histogram(mb_copies, bins, density=True)[::-1]
+            ).opts(
+                width=400,
+                height=200,
+            ) + hv.Histogram(
+                np.histogram(sb_copies, bins, density=True)[::-1]
+            ).opts(
+                width=400,
+                height=200,
+            )).cols(1)
+        )
     
-    @param.depends('selected_card')
+    @param.depends('selected_card', 'valid_wr_rows')
     def get_winrate_analysis(self):
+        """Todo: tidy up filtering"""
         if not self.selected_card:
             return pn.pane.Markdown("Select a card to see win rate analysis")
             
@@ -139,14 +243,14 @@ class MTGAnalyzer(param.Parameterized):
         
         mb_idx = self.feature_names[self.selected_card]
             
-        copy_counts = self.X[:, mb_idx].toarray()
+        copy_counts = self.X[self.valid_wr_rows][:, mb_idx].toarray()
         
         win_rates = []
         for i in range(5):  # 0-4 copies
             mask = copy_counts == i
             if mask.any():
-                wins = self.df.loc[mask.ravel(), 'Wins'].sum()
-                total = wins + self.df.loc[mask.ravel(), 'Losses'].sum()
+                wins = self.df.loc[self.valid_wr_rows].reset_index().loc[mask.ravel(), 'Wins'].sum()
+                total = wins + self.df.loc[self.valid_wr_rows].reset_index().loc[mask.ravel(), 'Losses'].sum()
                 win_rates.append({'copies': i, 'winrate': wins/total if total else 0})
                 
         # Create line plot using HoloViews
@@ -282,7 +386,7 @@ def load_data(data_path='processed_data', lookback_days=365):
     # Load card vectors
     X = scipy.sparse.load_npz(Path(data_path) / 'card_vectors.npz')[df['Date'] >= cutoff_date]
 
-    df = df[df['Date'] >= cutoff_date]
+    df = df[df['Date'] >= cutoff_date].reset_index()
     
     # Load and reconstruct vectorizer
     with open(Path(data_path) / 'vectorizer.json', 'r') as f:
