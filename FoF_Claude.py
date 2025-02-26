@@ -40,7 +40,7 @@ class MTGAnalyzer(param.Parameterized):
             [name.replace('_SB', '') for name in self.feature_names.keys()]
         )))
 
-    @param.depends('date_range', 'selected_cards', 'excluded_cards')
+    @param.depends('date_range', 'selected_cards', 'excluded_cards', watch=True)
     def find_valid_rows(self):
         """
         Find row indices where specified logical combinations of column pairs exist.
@@ -131,7 +131,8 @@ class MTGAnalyzer(param.Parameterized):
         
         # Return row indices that satisfy all conditions
         self.valid_rows = np.where(row_mask)[0]
-        self.valid_wr_rows = np.where(row_mask & ~self.df['League'])[0]
+        self.valid_wr_rows = np.where(row_mask & ~self.df['Invalid_WR'])[0]
+        # print(self.valid_wr_rows)
 
     @param.depends('selected_cards', 'cluster_view', 'date_range')
     def get_deck_view(self):
@@ -209,25 +210,25 @@ class MTGAnalyzer(param.Parameterized):
             mb_d, _ = self.X[self.valid_rows][:, mb_idx].nonzero()
             sb_d, _ = self.X[self.valid_rows][:, sb_idx].nonzero()
             d = set(np.concatenate([mb_d, sb_d]))
-            mb_copies = self.X[list(d), mb_idx].toarray().flatten()
-            sb_copies = self.X[list(d), sb_idx].toarray().flatten()
+            mb_copies = self.X[self.valid_rows][list(d), mb_idx].toarray().flatten()
+            sb_copies = self.X[self.valid_rows][list(d), sb_idx].toarray().flatten()
             n_decks = len(d)
 
         bins = np.arange(-0.5, np.nanmax([np.nanmax(mb_copies), np.nanmax(sb_copies), 5]), 1)
-
-        return pn.Column(
-            pn.pane.Markdown(f"{self.selected_card} appears in {n_decks} decks"),
-            hv.Layout(hv.Histogram(
-                np.histogram(mb_copies, bins, density=True)[::-1]
-            ).opts(
-                width=400,
-                height=200,
-            ) + hv.Histogram(
-                np.histogram(sb_copies, bins, density=True)[::-1]
-            ).opts(
-                width=400,
-                height=200,
-            )).cols(1)
+        mb_y, _ = np.histogram(mb_copies, bins, density=True)
+        sb_y, _ = np.histogram(sb_copies, bins, density=True)
+        return hv.Bars(
+            pd.DataFrame({
+                'Frequency': np.concatenate([mb_y, sb_y]),
+                'Count': [0,1,2,3,4,0,1,2,3,4],
+                # 'B': ['MB']*5 + ['SB'] * 5
+                'B': ['M'] * 5 + ['S'] * 5
+            }),
+            kdims=['Count', 'B']
+        ).opts(
+            width=400,
+            height=300,
+            # multi_level=False,
         )
     
     @param.depends('selected_card', 'valid_wr_rows')
@@ -241,25 +242,45 @@ class MTGAnalyzer(param.Parameterized):
         if not self.selected_card in self.feature_names:
             return pn.pane.Markdown("Card not found in dataset")
         
-        mb_idx = self.feature_names[self.selected_card]
-            
-        copy_counts = self.X[self.valid_wr_rows][:, mb_idx].toarray()
+        plots = list()
         
-        win_rates = []
-        for i in range(5):  # 0-4 copies
-            mask = copy_counts == i
-            if mask.any():
-                wins = self.df.loc[self.valid_wr_rows].reset_index().loc[mask.ravel(), 'Wins'].sum()
-                total = wins + self.df.loc[self.valid_wr_rows].reset_index().loc[mask.ravel(), 'Losses'].sum()
-                win_rates.append({'copies': i, 'winrate': wins/total if total else 0})
+        mb_idx = self.feature_names.get(self.selected_card)
+        if mb_idx is not None:    
+            copy_counts = self.X[self.valid_wr_rows][:, mb_idx].toarray()
+            
+            mb_win_rates = []
+            for i in range(5):  # 0-4 copies
+                mask = copy_counts == i
+                if mask.any():
+                    wins = self.df.loc[self.valid_wr_rows].reset_index().loc[mask.ravel(), 'Wins'].sum()
+                    total = wins + self.df.loc[self.valid_wr_rows].reset_index().loc[mask.ravel(), 'Losses'].sum()
+                    mb_win_rates.append({'copies': i, 'winrate': wins/total if total else 0})
+            
+            plots.append(hv.Curve(
+                mb_win_rates, 'copies', 'winrate', label='Main'
+            ))
+
+        sb_idx = self.feature_names.get(f'{self.selected_card}_SB')
+        if sb_idx is not None:    
+            copy_counts = self.X[self.valid_wr_rows][:, sb_idx].toarray()
+            
+            sb_win_rates = []
+            for i in range(5):  # 0-4 copies
+                mask = copy_counts == i
+                if mask.any():
+                    wins = self.df.loc[self.valid_wr_rows].reset_index().loc[mask.ravel(), 'Wins'].sum()
+                    total = wins + self.df.loc[self.valid_wr_rows].reset_index().loc[mask.ravel(), 'Losses'].sum()
+                    sb_win_rates.append({'copies': i, 'winrate': wins/total if total else 0})
+            
+            plots.append(hv.Curve(
+                sb_win_rates, 'copies', 'winrate', label='Sideboard'
+            ))
                 
         # Create line plot using HoloViews
-        win_rate_plot = hv.Curve(
-            win_rates, 'copies', 'winrate'
-        ).opts(
+        win_rate_plot = hv.Overlay(plots).opts(
             width=400,
             height=300,
-            title=f"Win Rate by Copy Count - {self.selected_card}",
+            title=f"Win Rate by Copy Count\n{self.selected_card}",
             ylabel='Win Rate',
             xlabel='Number of Copies'
         )
@@ -273,6 +294,15 @@ def create_dashboard(df, X, vocabulary):
     # Create card selection widget
     card_select = pn.widgets.MultiChoice(
         name='Required Cards',
+        options=analyzer.card_options,
+        value=[],
+        placeholder='Search for cards...',
+        sizing_mode='stretch_width'
+    )
+
+    # Create card selection widget
+    card_exclude = pn.widgets.MultiChoice(
+        name='Excluded Cards',
         options=analyzer.card_options,
         value=[],
         placeholder='Search for cards...',
@@ -309,6 +339,7 @@ def create_dashboard(df, X, vocabulary):
     
     # Link widgets to analyzer parameters
     card_select.link(analyzer, value='selected_cards')
+    card_exclude.link(analyzer, value='excluded_cards')
     card_analysis.link(analyzer, value='selected_card')
     date_range.link(analyzer, value='date_range')
 
@@ -319,6 +350,7 @@ def create_dashboard(df, X, vocabulary):
     controls = pn.Column(
         pn.pane.Markdown("## MTG Deck Analysis"),
         card_select,
+        card_exclude,
         date_range,
         view_toggle,
         card_analysis,

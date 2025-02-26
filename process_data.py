@@ -68,16 +68,61 @@ def process_mtg_data(lookback_days=365, fmt='modern'):
         deck_df = pd.DataFrame(data['Decks'])
         deck_df['Deck'] = data['Decks']
         deck_df['Tournament'] = path.name
+
+        ## TODO This is broken, too many tournaments have untrustworthy standings.
+        # Need to build it myself from Rounds.
         
         # Process standings
         standings_df = pd.DataFrame(data['Standings'])
         if standings_df.shape[0]:
-            deck_df = deck_df.join(standings_df.set_index('Player'), on='Player')
-            deck_df['League'] = False
+            deck_df = deck_df.join(standings_df, rsuffix='_Standings')#.set_index('Player'), on='Player')
+            if deck_df['Wins'].sum() == deck_df['Losses'].sum():
+                # Everything is fine.
+                #
+                deck_df['Invalid_WR'] = False
+            elif data['Rounds'] is not None:
+                # We need to build the win rates from the individual rounds.
+                #
+                round_df = pd.concat([pd.DataFrame(r['Matches']) for r in data['Rounds']], ignore_index=True)
+
+                # Some players we don't have deck lists for, so we shouldn't include them in the wr.
+                #
+                round_df = round_df[
+                    round_df[['Player1','Player2']].isin(deck_df['Player'])
+                ]
+                
+                for i in deck_df.index:
+                    # In order, 
+                    # Make sure our player won/lost,
+                    # Make sure it wasn't a draw,
+                    # Make sure it wasn't a bye.
+                    deck_df.loc[i, 'Wins'] = (
+                        (round_df['Player1'] == deck_df.loc[i, 'Player']) & \
+                        round_df['Result'].str.startswith('2') & \
+                        ~(round_df['Player2'] == ('-'))
+                    ).sum(axis=None)
+                    deck_df.loc[i, 'Losses'] = (
+                        (round_df['Player2'] == deck_df.loc[i, 'Player']) & \
+                        round_df['Result'].str.startswith('2')
+                    ).sum(axis=None)
+                
+                if deck_df['Wins'].sum() == deck_df['Losses'].sum():
+                    # Everything is fine.
+                    #
+                    deck_df['Invalid_WR'] = False
+                    # print(f'Fixed {path}')
+                else:
+                    deck_df['Invalid_WR'] = True
+                    print(deck_df['Player'].nunique(), deck_df.shape)
+                    print(path, deck_df['Wins'].sum(), deck_df['Losses'].sum())
+                    print(f'Could not fix {path}')
+
+            else:
+                deck_df['Invalid_WR'] = True
         else:
             deck_df['Wins'] = 5
             deck_df['Losses'] = 0
-            deck_df['League'] = True
+            deck_df['Invalid_WR'] = True
 
         
         # Set date from path if missing
@@ -90,6 +135,7 @@ def process_mtg_data(lookback_days=365, fmt='modern'):
     df = df.sort_values(by='Date')
 
     print(f'deck data loaded, shape={df.shape}')
+    print(f'Invalid win rates: shape=({df["Invalid_WR"].sum()})')
 
     # Load card data
     with open('../AtomicCards.json', 'r') as f:
@@ -196,7 +242,7 @@ def process_mtg_data(lookback_days=365, fmt='modern'):
     df['Date'] = df['Date'].astype(str)
     # Save processed data
     output_data = {
-        'decks': df[['Player', 'Wins', 'Losses', 'Date', 'Tournament', 'League']].to_dict('records'),
+        'decks': df[['Player', 'Wins', 'Losses', 'Date', 'Tournament', 'Invalid_WR']].to_dict('records'),
         'clusters': cluster_labels.tolist(),
         'cluster_info': cluster_representatives,
         'feature_names': vectorizer.get_feature_names_out().tolist()
