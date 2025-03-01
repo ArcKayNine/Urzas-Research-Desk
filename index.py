@@ -84,7 +84,7 @@ def create_dashboard(df, X, vocabulary):
     
     # Create template
     template = pn.template.FastListTemplate(
-        title="MTG Deck Analysis",
+        title="Urza's Research Desk",
         sidebar=[controls],
         main=[
             pn.Tabs(
