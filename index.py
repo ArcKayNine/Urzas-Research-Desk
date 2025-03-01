@@ -271,19 +271,20 @@ class MTGAnalyzer(param.Parameterized):
         bins = np.arange(-0.5, np.nanmax([np.nanmax(mb_copies), np.nanmax(sb_copies), 5]), 1)
         mb_y, _ = np.histogram(mb_copies, bins, density=True)
         sb_y, _ = np.histogram(sb_copies, bins, density=True)
+
         return hv.Bars(
             pd.DataFrame({
                 'Frequency': np.concatenate([mb_y, sb_y]),
-                'Count': [0,1,2,3,4,0,1,2,3,4],
-                # 'B': ['MB']*5 + ['SB'] * 5
-                'B': ['Main'] * 5 + ['Sideboard'] * 5
+                'Qtty': [0,1,2,3,4,0,1,2,3,4],
+                'Board': ['M']*5 + ['SB'] * 5,
+                # 'B': ['Main'] * 5 + ['Sideboard'] * 5
             }),
-            kdims=['Count', 'B'],
+            kdims=['Qtty', 'Board'],
         ).opts(
             width=400,
             height=400,
-            multi_level=False,
-            title=f"Copy Frequency",
+            # multi_level=False,
+            title=f"Qtty Frequency",
         )
     
     @param.depends('selected_card', 'valid_wr_rows')
