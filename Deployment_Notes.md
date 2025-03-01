@@ -14,5 +14,14 @@ The following lines go in index.js just under `console.log("Packages loaded!");`
   let zipResponse = await fetch("processed_data.zip");
   let zipBinary = await zipResponse.arrayBuffer();
   self.pyodide.unpackArchive(zipBinary, "zip");
+  console.log("Data loaded!");
 ```
+
+To test, run
+
+```
+python -m http.server
+```
+
+and navigate to 127.0.0.1:8000
 

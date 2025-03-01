@@ -399,7 +399,6 @@ class MTGAnalyzer(param.Parameterized):
         return win_rate_plot
 
 
-
 # Load and process data
 def load_data(data_path='processed_data', lookback_days=365):
     """
@@ -629,14 +628,26 @@ def create_dashboard(df, X, vocabulary):
     card_exclude.link(analyzer, value='excluded_cards')
     card_analysis.link(analyzer, value='selected_card')
     date_range.link(analyzer, value='date_range')
+
+    description = pn.pane.HTML(
+        '''
+        Urza's Research Desk brought to you by me, <a target="_blank" rel="noopener noreferrer" href="https://bsky.app/profile/arckaynine.bsky.social">ArcKayNine</a>.<br>
+        Data comes courtesy of the excellent work done by <a target="_blank" rel="noopener noreferrer" href="https://github.com/Badaro/MTGODecklistCache">Badaro</a>.<br>      
+        For more from me, check out my blog, <a target="_blank" rel="noopener noreferrer" href="https://compulsiveresearchmtg.blogspot.com">CompulsiveResearchMtg</a> or the exploits of my team, <a href="https://bsky.app/profile/busstop-mtg.bsky.social">Team Bus Stop</a>.<br>
+        If you find this useful, valuable, or interesting, consider supporting further work via my <a target="_blank" rel="noopener noreferrer" href="https://ko-fi.com/arckaynine">Ko-fi</a>.<br>
+        ''',
+        # width=150,
+    )
     
     # Create layout groups
     controls = pn.Column(
         pn.pane.Markdown("## MTG Deck Analysis"),
+        pn.pane.Markdown("To filter down the decks you're looking at, select cards that are required in the 75, and cards that cannot be in the 75."),
         card_select,
         card_exclude,
         date_range,
         analyzer.get_selection_info,
+        description,
         sizing_mode='stretch_width'
     )
     
