@@ -11,6 +11,8 @@ import hdbscan
 from vectorizers.transformers import InformationWeightTransformer
 from tqdm import tqdm
 
+from Helpers import fuzzy_join
+
 def get_tournament_files(base_path='../MTGODecklistCache/Tournaments', lookback_days=365, fmt='modern'):
     """
     Find all modern tournament files from the last lookback_days.
@@ -62,77 +64,100 @@ def process_mtg_data(lookback_days=365, fmt='modern'):
     print('Tournament Files')
     tournament_path = Path('../MTGODecklistCache/Tournaments/')
     for path in tqdm(get_tournament_files(tournament_path, lookback_days, fmt)):
-        with open(path) as f:
-            data = json.load(f)
-        
-        deck_df = pd.DataFrame(data['Decks'])
-        deck_df['Deck'] = data['Decks']
-        deck_df['Tournament'] = path.name
+        try:
+            with open(path) as f:
+                data = json.load(f)
+            
+            deck_df = pd.DataFrame(data['Decks'])
+            deck_df['Deck'] = data['Decks']
+            deck_df['Tournament'] = path.name
+            
+            # Process standings
+            standings_df = pd.DataFrame(data['Standings'])
+            if standings_df.shape[0]:
+                if deck_df.loc[0, 'Result'].endswith('Place'):
+                    deck_df['Rank'] = deck_df['Result'].str[:-8].astype(int)
+                else:
+                    deck_df['Rank'] = range(deck_df.shape[0])
+                deck_df = fuzzy_join(deck_df, standings_df)
 
-        ## TODO This is broken, too many tournaments have untrustworthy standings.
-        # Need to build it myself from Rounds.
-        
-        # Process standings
-        standings_df = pd.DataFrame(data['Standings'])
-        if standings_df.shape[0]:
-            deck_df = deck_df.join(standings_df, rsuffix='_Standings')#.set_index('Player'), on='Player')
-            if deck_df['Wins'].sum() == deck_df['Losses'].sum():
-                # Everything is fine.
-                #
-                deck_df['Invalid_WR'] = False
-            elif data['Rounds'] is not None:
-                # We need to build the win rates from the individual rounds.
-                #
-                round_df = pd.concat([pd.DataFrame(r['Matches']) for r in data['Rounds']], ignore_index=True)
-
-                # Some players we don't have deck lists for, so we shouldn't include them in the wr.
-                #
-                round_df = round_df[
-                    round_df[['Player1','Player2']].isin(deck_df['Player'])
-                ]
-                
-                for i in deck_df.index:
-                    # In order, 
-                    # Make sure our player won/lost,
-                    # Make sure it wasn't a draw,
-                    # Make sure it wasn't a bye.
-                    deck_df.loc[i, 'Wins'] = (
-                        (round_df['Player1'] == deck_df.loc[i, 'Player']) & \
-                        round_df['Result'].str.startswith('2') & \
-                        ~(round_df['Player2'] == ('-'))
-                    ).sum(axis=None)
-                    deck_df.loc[i, 'Losses'] = (
-                        (round_df['Player2'] == deck_df.loc[i, 'Player']) & \
-                        round_df['Result'].str.startswith('2')
-                    ).sum(axis=None)
-                
                 if deck_df['Wins'].sum() == deck_df['Losses'].sum():
                     # Everything is fine.
                     #
                     deck_df['Invalid_WR'] = False
-                    # print(f'Fixed {path}')
+                elif data['Rounds'] is not None:
+                    # We need to build the win rates from the individual rounds.
+                    #
+                    round_df = pd.concat([pd.DataFrame(r['Matches']) for r in data['Rounds']], ignore_index=True)
+
+                    # Some players we don't have deck lists for, so we shouldn't include them in the wr.
+                    #
+                    round_df = round_df[
+                        round_df['Player1'].isin(deck_df['Player']) & round_df['Player2'].isin(deck_df['Player'])
+                    ]
+                    
+                    for i in deck_df.index:
+                        # In order, 
+                        # Make sure our player won/lost,
+                        # Make sure it wasn't a draw,
+                        # Make sure it wasn't a bye.
+                        deck_df.loc[i, 'Wins'] = (
+                            (round_df['Player1'] == deck_df.loc[i, 'Player']) & \
+                            round_df['Result'].str.startswith('2') & \
+                            ~(round_df['Player2'] == ('-'))
+                        ).sum(axis=None)
+                        deck_df.loc[i, 'Losses'] = (
+                            (round_df['Player2'] == deck_df.loc[i, 'Player']) & \
+                            round_df['Result'].str.startswith('2')
+                        ).sum(axis=None)
+                    
+                    if deck_df['Wins'].sum() == deck_df['Losses'].sum():
+                        # Everything is fine.
+                        #
+                        deck_df['Invalid_WR'] = False
+                    else:
+                        deck_df['Invalid_WR'] = True
+                        # print(deck_df['Player'].nunique(), deck_df.shape)
+                        # print(path, deck_df['Wins'].sum(), deck_df['Losses'].sum())
+                        print(f'Could not fix {path}')
+
+                elif 'mtgo.com' in str(path):
+                    # Draws can't happen, we can look at points.
+                    # Sometimes wins aren't recorded.
+                    # Could be the same for losses, but we can't do anything about that.
+                    # We'll fix for wins and if things are still broken call it.
+                    #
+                    deck_df['Wins'] = deck_df['Points'] / 3
+
+                    if deck_df['Wins'].sum() == deck_df['Losses'].sum():
+                        # Everything is fine.
+                        #
+                        deck_df['Invalid_WR'] = False
+                    else:
+                        deck_df['Invalid_WR'] = True
+                        # print(deck_df['Player'].nunique(), deck_df.shape)
+                        # print(path, deck_df['Wins'].sum(), deck_df['Losses'].sum())
+                        print(f'Could not fix mtgo event {path}')
+
                 else:
                     deck_df['Invalid_WR'] = True
-                    print(deck_df['Player'].nunique(), deck_df.shape)
-                    print(path, deck_df['Wins'].sum(), deck_df['Losses'].sum())
-                    print(f'Could not fix {path}')
-
             else:
                 deck_df['Invalid_WR'] = True
-        else:
-            deck_df['Wins'] = 5
-            deck_df['Losses'] = 0
-            deck_df['Invalid_WR'] = True
 
+            
+            # Set date from path if missing
+            deck_df['Date'] = f'{path.parent.parent.parent.name}-{path.parent.parent.name}-{path.parent.name}'
+            
+            df = pd.concat([df, deck_df], ignore_index=True)
+        except Exception as e:
+            print(path)
+            raise e
         
-        # Set date from path if missing
-        deck_df['Date'] = f'{path.parent.parent.parent.name}-{path.parent.parent.name}-{path.parent.name}'
-        
-        df = pd.concat([df, deck_df], ignore_index=True)
-    
     # Convert dates and sort
     df['Date'] = pd.to_datetime(df['Date'])
     df = df.sort_values(by='Date')
+
+    df = df.dropna(subset=['Date','Deck'])
 
     print(f'deck data loaded, shape={df.shape}')
     print(f'Invalid win rates: shape=({df["Invalid_WR"].sum()})')
