@@ -146,7 +146,7 @@ class MTGAnalyzer(param.Parameterized):
                 sizing_mode='stretch_width',
             ),
             pn.widgets.TooltipIcon(
-                value="League data and other sources only show decks with 100% winrate, so they can't be counted.",
+                value="League data and other sources only show decks with 100% winrate, so they can't be included in win rate calculations. They still contribute to aggregation info.",
                 max_width=10
             ),
         )
@@ -633,7 +633,7 @@ def create_dashboard(df, X, vocabulary):
         '''
         Urza's Research Desk brought to you by me, <a target="_blank" rel="noopener noreferrer" href="https://bsky.app/profile/arckaynine.bsky.social">ArcKayNine</a>.<br>
         Data comes courtesy of the excellent work done by <a target="_blank" rel="noopener noreferrer" href="https://github.com/Badaro/MTGODecklistCache">Badaro</a>.<br>      
-        For more from me, check out my blog, <a target="_blank" rel="noopener noreferrer" href="https://compulsiveresearchmtg.blogspot.com">CompulsiveResearchMtg</a> or the exploits of my team, <a href="https://bsky.app/profile/busstop-mtg.bsky.social">Team Bus Stop</a>.<br>
+        For more of my work, check out my blog, <a target="_blank" rel="noopener noreferrer" href="https://compulsiveresearchmtg.blogspot.com">CompulsiveResearchMtg</a> or the exploits of my team, <a href="https://bsky.app/profile/busstop-mtg.bsky.social">Team Bus Stop</a>.<br>
         If you find this useful, valuable, or interesting, consider supporting further work via my <a target="_blank" rel="noopener noreferrer" href="https://ko-fi.com/arckaynine">Ko-fi</a>.<br>
         ''',
         # width=150,
