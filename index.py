@@ -17,6 +17,15 @@ hv.extension('bokeh')
 from scipy import sparse
 from scipy.stats import binomtest
 
+# TODO
+# Card image hover
+# Reset selections
+# Fix selection info
+# Double check interaction between selection and individual card analysis
+# Archetypes
+# Remove mirrors
+# Temporal
+
 class MTGAnalyzer(param.Parameterized):
     selected_cards = param.List(default=[], doc="Cards required in deck")
     excluded_cards = param.List(default=[], doc="Cards excluded from deck")
@@ -511,78 +520,6 @@ def vertical_bar_html(value):
             <div style="position: absolute; width: 100%; text-align: center; top: 50%; transform: translateY(-50%); font-size: 10px;">{percent:.0f}%</div>
         </div>
     """
-
-def fuzzy_join(df1, df2):
-    """
-    Join two dataframes on 'Player' column, handling duplicate names by matching based on closest rank.
-    This handles for when there are duplicate player names in an event.
-    
-    Parameters:
-    df1, df2: Pandas DataFrames with 'Player' and 'Rank' columns
-    
-    Returns:
-    Pandas DataFrame with joined results
-    """
-    # Step 1: Do a standard join on names first
-    # This will work for all unique names
-    standard_join = pd.merge(df1, df2, on='Player', how='inner', suffixes=('','_standings'))
-    
-    # Step 2: Find duplicate names from both dataframes
-    duplicate_names_df1 = df1['Player'].value_counts()[df1['Player'].value_counts() > 1].index.tolist()
-    duplicate_names_df2 = df2['Player'].value_counts()[df2['Player'].value_counts() > 1].index.tolist()
-    duplicate_names = list(set(duplicate_names_df1 + duplicate_names_df2))
-    
-    # Step 3: Remove duplicate named rows from the standard join
-    clean_join = standard_join[~standard_join['Player'].isin(duplicate_names)]
-    
-    # Step 4: Handle duplicates separately
-    fuzzy_results = []
-    for dup_name in duplicate_names:
-        # Get all rows with this name from both dataframes
-        dup_df1 = df1[df1['Player'] == dup_name].copy()
-        dup_df2 = df2[df2['Player'] == dup_name].copy()
-        
-        # If we have duplicates in both dataframes, we need to do fuzzy matching
-        if len(dup_df1) > 0 and len(dup_df2) > 0:
-            # Create a distance matrix between all rank combinations
-            distances = np.zeros((len(dup_df1), len(dup_df2)))
-            
-            for i, row1 in enumerate(dup_df1.itertuples()):
-                for j, row2 in enumerate(dup_df2.itertuples()):
-                    distances[i, j] = abs(row1.Rank - row2.Rank)
-            
-            # Match rows greedily by minimum rank distance
-            matched_pairs = []
-            while len(matched_pairs) < min(len(dup_df1), len(dup_df2)):
-                # Find the minimum distance
-                min_idx = np.unravel_index(distances.argmin(), distances.shape)
-                matched_pairs.append((min_idx[0], min_idx[1]))
-                
-                # Mark this pair as matched by setting distance to infinity
-                distances[min_idx[0], :] = np.inf
-                distances[:, min_idx[1]] = np.inf
-            
-            # Create joined rows based on matched pairs
-            for df1_idx, df2_idx in matched_pairs:
-                row_df1 = dup_df1.iloc[df1_idx]
-                row_df2 = dup_df2.iloc[df2_idx]
-                
-                joined_row = pd.DataFrame({
-                    'name': [row_df1['Player']],
-                    'rank_df1': [row_df1['Rank']],
-                    'rank_df2': [row_df2['Rank']]
-                })
-                
-                fuzzy_results.append(joined_row)
-    
-    # Step 5: Combine standard join with fuzzy results
-    if fuzzy_results:
-        fuzzy_join = pd.concat(fuzzy_results, ignore_index=True)
-        final_result = pd.concat([clean_join, fuzzy_join], ignore_index=True)
-    else:
-        final_result = clean_join
-    
-    return final_result
 
 # Create the dashboard
 def create_dashboard(df, X, vocabulary):
