@@ -7,6 +7,7 @@ import numpy as np
 import holoviews as hv
 import panel as pn
 
+import requests
 import json
 
 import param
@@ -17,14 +18,112 @@ hv.extension('bokeh')
 from scipy import sparse
 from scipy.stats import binomtest
 
-# TODO
-# Card image hover
-# Reset selections
-# Fix selection info
-# Double check interaction between selection and individual card analysis
-# Archetypes
-# Remove mirrors
-# Temporal
+__version__ = 20250308
+
+# Custom javascript for card hovering.
+#
+CARD_HOVER_JS = """
+// Create a tooltip element
+const tooltip = document.createElement('div');
+tooltip.id = 'card-tooltip';
+tooltip.style.cssText = 'position:absolute; z-index:1000; display:none; background-color:transparent;';
+
+const img = document.createElement('img');
+img.id = 'card-tooltip-img';
+img.style.cssText = 'max-width:200px; max-height:280px; border-radius:10px; box-shadow:0 0 10px rgba(0,0,0,0.5);';
+tooltip.appendChild(img);
+document.body.appendChild(tooltip);
+
+// Cache for card images
+const cardImageCache = {};
+
+// Event listeners for the table
+document.addEventListener('mouseover', function(e) {
+    const target = e.target;
+    console.log(target);
+    if (target.classList.contains('card-name')) {
+        const cardName = target.dataset.card-name;
+        
+        console.log(cardName);
+
+        // Position tooltip
+        const rect = target.getBoundingClientRect();
+        tooltip.style.left = rect.right + 10 + 'px';
+        tooltip.style.top = rect.top + 'px';
+        
+        // Show loading state
+        img.src = '';
+        tooltip.style.display = 'block';
+        
+        // Check cache first
+        if (cardImageCache[cardName]) {
+            img.src = cardImageCache[cardName];
+            return;
+        }
+        
+        // Fetch from Scryfall
+        fetch(`https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(cardName)}`, {
+            headers: {
+                'Accept': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.image_uris && data.image_uris.normal) {
+                cardImageCache[cardName] = data.image_uris.normal;
+                img.src = data.image_uris.normal;
+            }
+        })
+        .catch(console.error);
+    }
+});
+
+document.addEventListener('mouseout', function(e) {
+    if (!e.relatedTarget || !e.relatedTarget.closest('#card-tooltip')) {
+        tooltip.style.display = 'none';
+    }
+});
+
+// Touch support for mobile
+//document.addEventListener('touchstart', function(e) {
+//    const target = e.target;
+//    if (target.classList.contains('card-name')) {
+        // Similar logic as mouseover
+        // ... (same code as above)
+//    }
+//});
+"""
+
+# Create a Card API service (using Scryfall API)
+#
+class CardService:
+    def __init__(self, app_name="UrzasResearchDesk/1.0"):
+        self.app_name = f'UrzasResearchDesk/{__version__}'
+        self.headers = {
+            'User-Agent': self.app_name,
+            'Accept': 'application/json;q=0.9,*/*;q=0.8'
+        }
+    
+    def get_card_image_url(self, card_name):
+        # Query Scryfall API for card info with proper headers
+        #
+        try:
+            response = requests.get(
+                f"https://api.scryfall.com/cards/named?fuzzy={card_name}",
+                headers=self.headers,
+                timeout=10
+            )
+            if response.status_code == 200:
+                data = response.json()
+                # Get normal size image
+                #
+                return data.get('image_uris', {}).get('normal', '')
+            else:
+                print(f"Error fetching card {card_name}: {response.status_code}")
+                return ''
+        except Exception as e:
+            print(f"Exception when fetching card {card_name}: {str(e)}")
+            return ''
 
 class MTGAnalyzer(param.Parameterized):
     selected_cards = param.List(default=[], doc="Cards required in deck")
@@ -41,6 +140,7 @@ class MTGAnalyzer(param.Parameterized):
         self.df = df
         self.X = card_vectors
         self.feature_names = vocabulary
+        self.card_service = CardService()
         self._initialize_card_list()
         self.find_valid_rows()
         
@@ -50,6 +150,14 @@ class MTGAnalyzer(param.Parameterized):
             [name.replace('_SB', '') for name in self.feature_names.keys()]
         )))
 
+    def card_name_formatter(self, cell):
+        card_name = cell['value']
+        image_url = self.card_service.get_card_image_url(card_name)
+
+        # Return HTML with data attribute for the image URL
+        #
+        return f"""<div class="card-name" data-card-image-url="{image_url}">{card_name}</div>"""
+    
     @param.depends('date_range', 'selected_cards', 'excluded_cards', watch=True)
     def find_valid_rows(self):
         """
@@ -225,14 +333,21 @@ class MTGAnalyzer(param.Parameterized):
             mb_counts_df[col] = mb_counts_df[col].apply(vertical_bar_html)
             sb_counts_df[col] = sb_counts_df[col].apply(vertical_bar_html)
 
-        # Create tabulator with HTML formatter
+        # Create tabulator with HTML formatter.
+        # First do all of the qtty columns.
         #
         formatters = {
             col: {'type': 'html'} for col in col_list
         }
 
+        # Then do the name column.
+        formatters['Card'] = {'type': 'html'}
+
+        mb_counts_df = mb_counts_df.reset_index()
+        mb_counts_df['Card'] = mb_counts_df['Card'].apply(hover_card_html)
+
         mb_table = pn.widgets.Tabulator(
-            mb_counts_df, formatters=formatters, pagination='local',
+            mb_counts_df.reset_index(), formatters=formatters, pagination='local', show_index=False,
         )
         sb_table = pn.widgets.Tabulator(
             sb_counts_df, formatters=formatters, pagination='local',
@@ -521,6 +636,11 @@ def vertical_bar_html(value):
         </div>
     """
 
+def hover_card_html(card):
+    return f"""
+        <div class="card-name" data-card-name="{card}">{card}</div>
+    """
+
 # Create the dashboard
 def create_dashboard(df, X, vocabulary):
     analyzer = MTGAnalyzer(df, X, vocabulary)
@@ -615,7 +735,8 @@ def create_dashboard(df, X, vocabulary):
                 # TODO
                 # Temporal analysis (moving average population + wr)
                 sizing_mode='stretch_width'
-            )
+            ),
+            pn.pane.HTML(f"""<script>{CARD_HOVER_JS}</script>""")
         ],
     )
     
