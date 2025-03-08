@@ -25,3 +25,4 @@ python -m http.server
 
 and navigate to 127.0.0.1:8000
 
+Make sure the google tag is added to the html after the <head>

@@ -12,87 +12,18 @@ import json
 
 import param
 
-pn.extension('tabulator', sizing_mode="stretch_width", throttled=True)
+pn.extension(
+    'tabulator', 
+    sizing_mode="stretch_width", 
+    throttled=True, 
+    js_files={'autocard': 'https://mtgify.org/dist/autocard.js'},
+)
 hv.extension('bokeh')
 
 from scipy import sparse
 from scipy.stats import binomtest
 
 __version__ = 20250308
-
-# Custom javascript for card hovering.
-#
-CARD_HOVER_JS = """
-// Create a tooltip element
-const tooltip = document.createElement('div');
-tooltip.id = 'card-tooltip';
-tooltip.style.cssText = 'position:absolute; z-index:1000; display:none; background-color:transparent;';
-
-const img = document.createElement('img');
-img.id = 'card-tooltip-img';
-img.style.cssText = 'max-width:200px; max-height:280px; border-radius:10px; box-shadow:0 0 10px rgba(0,0,0,0.5);';
-tooltip.appendChild(img);
-document.body.appendChild(tooltip);
-
-// Cache for card images
-const cardImageCache = {};
-
-// Event listeners for the table
-document.addEventListener('mouseover', function(e) {
-    const target = e.target;
-    console.log(target);
-    if (target.classList.contains('card-name')) {
-        const cardName = target.dataset.card-name;
-        
-        console.log(cardName);
-
-        // Position tooltip
-        const rect = target.getBoundingClientRect();
-        tooltip.style.left = rect.right + 10 + 'px';
-        tooltip.style.top = rect.top + 'px';
-        
-        // Show loading state
-        img.src = '';
-        tooltip.style.display = 'block';
-        
-        // Check cache first
-        if (cardImageCache[cardName]) {
-            img.src = cardImageCache[cardName];
-            return;
-        }
-        
-        // Fetch from Scryfall
-        fetch(`https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(cardName)}`, {
-            headers: {
-                'Accept': 'application/json'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.image_uris && data.image_uris.normal) {
-                cardImageCache[cardName] = data.image_uris.normal;
-                img.src = data.image_uris.normal;
-            }
-        })
-        .catch(console.error);
-    }
-});
-
-document.addEventListener('mouseout', function(e) {
-    if (!e.relatedTarget || !e.relatedTarget.closest('#card-tooltip')) {
-        tooltip.style.display = 'none';
-    }
-});
-
-// Touch support for mobile
-//document.addEventListener('touchstart', function(e) {
-//    const target = e.target;
-//    if (target.classList.contains('card-name')) {
-        // Similar logic as mouseover
-        // ... (same code as above)
-//    }
-//});
-"""
 
 # Create a Card API service (using Scryfall API)
 #
@@ -255,7 +186,7 @@ class MTGAnalyzer(param.Parameterized):
         self.valid_wr_rows = np.where(row_mask & ~self.df['Invalid_WR'])[0]
         # print(self.valid_wr_rows)
 
-    @param.depends('valid_rows')
+    @param.depends('valid_rows', 'valid_wr_rows')
     def get_selection_info(self):
         return pn.Row(
             pn.pane.Markdown(
@@ -345,12 +276,14 @@ class MTGAnalyzer(param.Parameterized):
 
         mb_counts_df = mb_counts_df.reset_index()
         mb_counts_df['Card'] = mb_counts_df['Card'].apply(hover_card_html)
+        sb_counts_df = sb_counts_df.reset_index()
+        sb_counts_df['Card'] = sb_counts_df['Card'].apply(hover_card_html)
 
         mb_table = pn.widgets.Tabulator(
-            mb_counts_df.reset_index(), formatters=formatters, pagination='local', show_index=False,
+            mb_counts_df, formatters=formatters, pagination='local', show_index=False,
         )
         sb_table = pn.widgets.Tabulator(
-            sb_counts_df, formatters=formatters, pagination='local',
+            sb_counts_df, formatters=formatters, pagination='local', show_index=False,
         )
     
         return pn.Row(
@@ -637,8 +570,12 @@ def vertical_bar_html(value):
     """
 
 def hover_card_html(card):
+    """
+    Wrap a card to use mtgify's autocard. See link for docco
+    https://mtgify.org
+    """
     return f"""
-        <div class="card-name" data-card-name="{card}">{card}</div>
+        <auto-card>{card}</auto-card>
     """
 
 # Create the dashboard
@@ -736,7 +673,6 @@ def create_dashboard(df, X, vocabulary):
                 # Temporal analysis (moving average population + wr)
                 sizing_mode='stretch_width'
             ),
-            pn.pane.HTML(f"""<script>{CARD_HOVER_JS}</script>""")
         ],
     )
     
