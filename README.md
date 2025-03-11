@@ -12,7 +12,8 @@ There is some major functionality/things to investigate before making this more 
 - Archetype bundles, potentially from Badaro.
 - Fix selection updates.
 - Reset all selections.
-- Double check interaction between selection and individual card analysis
+- Double check interaction between selection and individual card analysis.
+- Plotting accessibility features (colours and fill/marker styles, not just colour).
 
 ### V2 Goals
 - Temporal analysis.

@@ -1,22 +1,11 @@
-# Pyodide conversion
+# Deployment Notes
+In order to deploy there are a few steps:
+- Make sure MTGODecklistCache is updated.
+- Run process_data.py.
+- Zip up the result and put it in docs/.
+- Run bundle.sh to add required headers.
 
-Run the following:
-```
-panel convert index.py --to pyodide-worker --out docs/
-```
-
-Then we need to make sure pyodide can see the files we want it to, so we'll fetch them and unzip them.
-processed_data.zip should be in docs/.
-The following lines go in index.js just under `console.log("Packages loaded!");`
-
-```
-  self.postMessage({type: 'status', msg: 'Reading Data'});
-  let zipResponse = await fetch("processed_data.zip");
-  let zipBinary = await zipResponse.arrayBuffer();
-  self.pyodide.unpackArchive(zipBinary, "zip");
-  console.log("Data loaded!");
-```
-
+# Testing
 To test, run
 
 ```
@@ -24,5 +13,3 @@ python -m http.server
 ```
 
 and navigate to 127.0.0.1:8000
-
-Make sure the google tag is added to the html after the <head>
