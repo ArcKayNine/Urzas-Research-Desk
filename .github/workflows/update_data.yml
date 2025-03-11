@@ -45,5 +45,5 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./docs
-          destination_dir: .  # Deploy to root of gh-pages branch
+          destination_dir: ./docs  # Deploy to root of gh-pages branch
           keep_files: false   # Replace existing content
