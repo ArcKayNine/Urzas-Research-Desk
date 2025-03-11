@@ -8,7 +8,5 @@ panel convert index.py --to pyodide-worker --out docs/
 #
 python bundle.py
 
-# TODO
-# Run preprocessing step.
-# Zip preprocessed data.
-# Move to docs.
+# python process_data.py
+# zip docs/processed_data.zip processed_data/
