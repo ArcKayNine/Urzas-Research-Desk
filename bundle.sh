@@ -2,6 +2,7 @@
 #
 echo "Processing data..."
 python process_data.py
+
 zip docs/processed_data.zip processed_data/
 
 # Convert to pyodide

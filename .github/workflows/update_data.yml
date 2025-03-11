@@ -37,7 +37,10 @@ jobs:
         run: |
           mkdir processed_data
           mkdir docs
-          ./bundle.sh
+          bundle.sh
+
+          ls processed_data
+          exit 1
           
           
       - name: Deploy to GitHub Pages
