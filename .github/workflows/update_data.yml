@@ -36,9 +36,8 @@ jobs:
       - name: Process data
         run: |
           mkdir processed_data
-          python process_data.py
-          zip docs/processed_data.zip processed_data/
-          echo "Last updated: $(date)" > docs/data_version.txt
+          ./bundle.sh
+          
           
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3

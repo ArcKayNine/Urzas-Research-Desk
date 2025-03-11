@@ -8,5 +8,9 @@ panel convert index.py --to pyodide-worker --out docs/
 #
 python bundle.py
 
-# python process_data.py
-# zip docs/processed_data.zip processed_data/
+# Run the processing and save in a zip.
+#
+python process_data.py
+zip docs/processed_data.zip processed_data/
+
+echo "Last updated: $(date)" > docs/data_version.txt
