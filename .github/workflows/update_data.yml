@@ -40,6 +40,7 @@ jobs:
           ./bundle.sh
 
           ls processed_data
+          ls -lart docs
           exit 1
           
           
