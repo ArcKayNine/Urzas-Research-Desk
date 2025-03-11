@@ -121,6 +121,9 @@ def get_tournament_files(base_path='../MTGODecklistCache/Tournaments', lookback_
     base_path = Path(base_path)
     for pattern in patterns:
         matching_files.extend(base_path.glob(pattern))
+
+    if not matching_files:
+        raise ValueError('No valid file paths were found.')
     
     return matching_files
 
@@ -223,6 +226,9 @@ def process_mtg_data(lookback_days=365, fmt='modern'):
             print(path)
             raise e
         
+    if not df.shape[0]:
+        raise ValueError('No data was found in the specified files.')
+    
     # Convert dates and sort
     df['Date'] = pd.to_datetime(df['Date'])
     df = df.sort_values(by='Date')
