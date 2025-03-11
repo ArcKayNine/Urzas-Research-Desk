@@ -268,63 +268,63 @@ def process_mtg_data(lookback_days=365, fmt='modern'):
 
     print('Vectorized')
     
-    # Apply UMAP for dimensionality reduction
-    reducer = umap.UMAP(
-        n_components=3,
-        metric='cosine',
-        # n_neighbors=15,
-        # min_dist=0.1,
-        random_state=42
-    )
+    # # Apply UMAP for dimensionality reduction
+    # reducer = umap.UMAP(
+    #     n_components=3,
+    #     metric='cosine',
+    #     # n_neighbors=15,
+    #     # min_dist=0.1,
+    #     random_state=42
+    # )
     
-    X_umap = reducer.fit_transform(X_iwt)
+    # X_umap = reducer.fit_transform(X_iwt)
 
-    print('UMAP complete')
+    # print('UMAP complete')
     
-    # Perform clustering on UMAP embedding
-    clusterer = hdbscan.HDBSCAN(
-        min_cluster_size=100,
-        min_samples=5,
-        cluster_selection_epsilon=0.5,
-        metric='euclidean'  # Use euclidean for reduced dimensions
-    )
+    # # Perform clustering on UMAP embedding
+    # clusterer = hdbscan.HDBSCAN(
+    #     min_cluster_size=100,
+    #     min_samples=5,
+    #     cluster_selection_epsilon=0.5,
+    #     metric='euclidean'  # Use euclidean for reduced dimensions
+    # )
     
-    cluster_labels = clusterer.fit_predict(X_umap)
+    # cluster_labels = clusterer.fit_predict(X_umap)
 
-    print(f'HDBSCAN complete, {clusterer.labels_.max()} clusters')
+    # print(f'HDBSCAN complete, {clusterer.labels_.max()} clusters')
     
-    # Calculate cluster representatives
-    cluster_representatives = {}
-    for label in tqdm(range(clusterer.labels_.max()+1)):
-        # Get decks in this cluster
-        cluster_mask = cluster_labels == label
-        cluster_vectors = X[cluster_mask]
+    # # Calculate cluster representatives
+    # cluster_representatives = {}
+    # for label in tqdm(range(clusterer.labels_.max()+1)):
+    #     # Get decks in this cluster
+    #     cluster_mask = cluster_labels == label
+    #     cluster_vectors = X[cluster_mask]
         
-        # Calculate mean card counts
-        mean_counts = cluster_vectors.mean(axis=0).A1
-        std_counts = cluster_vectors.toarray().std(axis=0)
+    #     # Calculate mean card counts
+    #     mean_counts = cluster_vectors.mean(axis=0).A1
+    #     std_counts = cluster_vectors.toarray().std(axis=0)
         
-        # Get top cards by mean/std ratio
-        card_stats = list(zip(
-            mean_counts,
-            std_counts,
-            vectorizer.get_feature_names_out()
-        ))
+    #     # Get top cards by mean/std ratio
+    #     card_stats = list(zip(
+    #         mean_counts,
+    #         std_counts,
+    #         vectorizer.get_feature_names_out()
+    #     ))
         
-        # Sort by mean/std ratio, handling divide by zero
-        top_cards = sorted([
-            (m, s, n) for m, s, n in card_stats
-            if m > 0.1  # Only include cards that appear in at least 10% of decks
-        ], key=lambda x: x[0]/(x[1] if x[1] > 0 else 0.1), reverse=True)[:10]
+    #     # Sort by mean/std ratio, handling divide by zero
+    #     top_cards = sorted([
+    #         (m, s, n) for m, s, n in card_stats
+    #         if m > 0.1  # Only include cards that appear in at least 10% of decks
+    #     ], key=lambda x: x[0]/(x[1] if x[1] > 0 else 0.1), reverse=True)[:10]
         
-        cluster_representatives[label] = {
-            'size': int(cluster_mask.sum()),
-            'win_rate': float(df.loc[cluster_mask, 'Wins'].sum() / 
-                            (df.loc[cluster_mask, 'Wins'].sum() + df.loc[cluster_mask, 'Losses'].sum())),
-            'top_cards': [{'name': n, 'mean': float(m), 'std': float(s)} for m, s, n in top_cards]
-        }
+    #     cluster_representatives[label] = {
+    #         'size': int(cluster_mask.sum()),
+    #         'win_rate': float(df.loc[cluster_mask, 'Wins'].sum() / 
+    #                         (df.loc[cluster_mask, 'Wins'].sum() + df.loc[cluster_mask, 'Losses'].sum())),
+    #         'top_cards': [{'name': n, 'mean': float(m), 'std': float(s)} for m, s, n in top_cards]
+    #     }
 
-    print('Clusters analysed')
+    # print('Clusters analysed')
     
     # Create output directory
     Path('processed_data').mkdir(exist_ok=True)
@@ -334,7 +334,7 @@ def process_mtg_data(lookback_days=365, fmt='modern'):
         'last_updated': datetime.utcnow().isoformat(),
         'num_decks': df.shape[0],
         'date_range': [df['Date'].min().isoformat(), df['Date'].max().isoformat()],
-        'num_clusters': len(set(cluster_labels)) - (1 if -1 in cluster_labels else 0)
+        # 'num_clusters': len(set(cluster_labels)) - (1 if -1 in cluster_labels else 0)
     }
     
     with open('processed_data/metadata.json', 'w') as f:
@@ -344,8 +344,8 @@ def process_mtg_data(lookback_days=365, fmt='modern'):
     # Save processed data
     output_data = {
         'decks': df[['Player', 'Wins', 'Losses', 'Date', 'Tournament', 'Invalid_WR']].to_dict('records'),
-        'clusters': cluster_labels.tolist(),
-        'cluster_info': cluster_representatives,
+        'clusters': [],#cluster_labels.tolist(),
+        'cluster_info': [],#cluster_representatives,
         'feature_names': vectorizer.get_feature_names_out().tolist()
     }
     
@@ -354,7 +354,7 @@ def process_mtg_data(lookback_days=365, fmt='modern'):
     
     # Save matrices
     scipy.sparse.save_npz('processed_data/card_vectors.npz', X)
-    np.save('processed_data/umap_embedding.npy', X_umap)
+    # np.save('processed_data/umap_embedding.npy', X_umap)
     
     # Save transformers data
     vectorizer_data = {

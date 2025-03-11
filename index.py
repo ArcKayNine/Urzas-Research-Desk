@@ -60,7 +60,6 @@ class MTGAnalyzer(param.Parameterized):
     selected_cards = param.List(default=[], doc="Cards required in deck")
     excluded_cards = param.List(default=[], doc="Cards excluded from deck")
     cluster_view = param.Boolean(default=True, doc="Show cluster view instead of card presence view")
-    show_correlation = param.Boolean(default=False, doc="Show correlation heatmap for selected card")
     selected_card = param.String(default='', doc="Card to analyze in detail")
     date_range = param.DateRange(default=None, doc="Date range for analysis")
     valid_rows = param.Array(default=np.array([]), doc="Selected indices")
@@ -186,7 +185,7 @@ class MTGAnalyzer(param.Parameterized):
         self.valid_wr_rows = np.where(row_mask & ~self.df['Invalid_WR'])[0]
         # print(self.valid_wr_rows)
 
-    @param.depends('valid_rows', 'valid_wr_rows')
+    @param.depends('valid_wr_rows')
     def get_selection_info(self):
         return pn.Row(
             pn.pane.Markdown(
@@ -199,7 +198,7 @@ class MTGAnalyzer(param.Parameterized):
             ),
         )
 
-    @param.depends('selected_cards', 'valid_rows')
+    @param.depends('valid_wr_rows')
     def get_deck_view(self):
         valid_cards = np.unique(self.X[self.valid_rows].nonzero()[1])
         # if valid_cards.shape[0] > 500:
@@ -297,7 +296,7 @@ class MTGAnalyzer(param.Parameterized):
             ),
         )
      
-    @param.depends('selected_card', 'show_correlation', 'valid_rows')
+    @param.depends('selected_card', 'valid_rows')
     def get_card_analysis(self):
         if not self.selected_card:
             return pn.pane.Markdown("Select a card and enable correlation view to see analysis")
@@ -482,7 +481,7 @@ def load_data(data_path='processed_data', lookback_days=365):
     df['Date'] = pd.to_datetime(df['Date']).dt.date
     
     # Load cluster labels
-    df['Cluster'] = data['clusters']
+    # df['Cluster'] = data['clusters']
 
     # Filter to recent data
     cutoff_date = (pd.to_datetime('today') - pd.Timedelta(days=lookback_days)).date()
