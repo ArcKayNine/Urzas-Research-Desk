@@ -625,9 +625,10 @@ def create_dashboard(df, X, vocabulary):
     description = pn.pane.HTML(
         '''
         Urza's Research Desk brought to you by me, <a target="_blank" rel="noopener noreferrer" href="https://bsky.app/profile/arckaynine.bsky.social">ArcKayNine</a>.<br>
-        Data comes courtesy of the excellent work done by <a target="_blank" rel="noopener noreferrer" href="https://github.com/Badaro/MTGODecklistCache">Badaro</a>.<br>      
+        All data comes courtesy of the excellent work done by <a target="_blank" rel="noopener noreferrer" href="https://github.com/Badaro/MTGODecklistCache">Badaro</a>.<br>      
         For more of my work, check out my blog, <a target="_blank" rel="noopener noreferrer" href="https://compulsiveresearchmtg.blogspot.com">CompulsiveResearchMtg</a> or the exploits of my team, <a href="https://bsky.app/profile/busstop-mtg.bsky.social">Team Bus Stop</a>.<br>
         If you find this useful, valuable, or interesting, consider supporting further work via my <a target="_blank" rel="noopener noreferrer" href="https://ko-fi.com/arckaynine">Ko-fi</a>.<br>
+        Urza's Research Desk is unofficial Fan Content permitted under the Fan Content Policy. Not approved/endorsed by Wizards. Portions of the materials used are property of Wizards of the Coast. ©Wizards of the Coast LLC.<br>
         ''',
         # width=150,
     )

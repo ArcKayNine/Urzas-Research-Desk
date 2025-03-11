@@ -238,12 +238,12 @@ def process_mtg_data(lookback_days=365, fmt='modern'):
     print(f'deck data loaded, shape={df.shape}')
     print(f'Invalid win rates: shape=({df["Invalid_WR"].sum()})')
 
-    # Load card data
-    with open('../AtomicCards.json', 'r') as f:
-        j = json.load(f)['data']
-    card_list = j.keys()
+    # # Load card data
+    # with open('../AtomicCards.json', 'r') as f:
+    #     j = json.load(f)['data']
+    # card_list = j.keys()
 
-    print(f'card data loaded, shape={len(card_list)}')
+    # print(f'card data loaded, shape={len(card_list)}')
     
     # Vectorize decks
     def merge_analyzer(deck):

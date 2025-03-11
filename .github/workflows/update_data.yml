@@ -27,11 +27,11 @@ jobs:
           git clone https://github.com/Badaro/MTGODecklistCache.git
           cd -
           
-      - name: Download MTGJson
-        run: |
-          cd ../
-          curl -o AtomicCards.json https://mtgjson.com/api/v5/AtomicCards.json
-          cd -
+      # - name: Download MTGJson
+      #   run: |
+      #     cd ../
+      #     curl -o AtomicCards.json https://mtgjson.com/api/v5/AtomicCards.json
+      #     cd -
           
       - name: Process data
         run: |
