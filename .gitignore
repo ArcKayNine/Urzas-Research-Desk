@@ -3,4 +3,4 @@ processed_data/*
 __pycache__/*
 *S_Store/
 *.ipynb
-docs/data_version.txt
+docs/
