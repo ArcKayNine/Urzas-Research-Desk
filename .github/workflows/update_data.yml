@@ -3,6 +3,7 @@ on:
   schedule:
     - cron: '0 0 * * *'  # Run daily
   workflow_dispatch:
+  push:
 
 jobs:
   update-data:
@@ -22,11 +23,15 @@ jobs:
 
       - name: Clone MTGODecklistCache
         run: |
+          cd ../
           git clone https://github.com/Badaro/MTGODecklistCache.git
+          cd -
           
       - name: Download MTGJson
         run: |
+          cd ../
           curl -o AtomicCards.json https://mtgjson.com/api/v5/AtomicCards.json
+          cd -
           
       - name: Process data
         run: |
