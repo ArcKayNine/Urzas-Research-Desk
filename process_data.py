@@ -6,8 +6,8 @@ from sklearn.feature_extraction.text import CountVectorizer
 import json
 from pathlib import Path
 from datetime import datetime, timedelta
-import umap
-import hdbscan
+# import umap
+# import hdbscan
 from vectorizers.transformers import InformationWeightTransformer
 from tqdm import tqdm
 
