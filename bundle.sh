@@ -8,8 +8,9 @@ formats=(
 )
 for i in "${formats[@]}"; do
     mkdir docs/$i
-
+    echo "running process_data.py"
     python process_data.py $i
+    echo "zipping"
     zip docs/$i/processed_data.zip processed_data/*
 done
 

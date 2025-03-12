@@ -137,7 +137,8 @@ def process_mtg_data(lookback_days=365, fmt='Modern'):
     
     # Process tournament files
     tournament_path = Path('../MTGODecklistCache/Tournaments/')
-    for path in tqdm(get_tournament_files(tournament_path, lookback_days, fmt.lower())):
+    # Add tqdm back here if needed.
+    for path in get_tournament_files(tournament_path, lookback_days, fmt.lower()):
         try:
             with open(path) as f:
                 data = json.load(f)
