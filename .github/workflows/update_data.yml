@@ -7,7 +7,7 @@ on:
 
 jobs:
   update-data:
-    runs-on: ubuntu-latest
+    runs-on: macos-13-large
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v2
