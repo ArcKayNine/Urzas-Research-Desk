@@ -3,8 +3,8 @@
 echo "Processing data..."
 formats=(
     Standard
-    Pioneer
-    Modern
+    # Pioneer
+    # Modern
 )
 for i in "${formats[@]}"; do
     mkdir docs/$i

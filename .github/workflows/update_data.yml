@@ -31,7 +31,7 @@ jobs:
           
       - name: Process data
         run: |
-          timeout 15m ./bundle.sh
+          ./bundle.sh
           
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
