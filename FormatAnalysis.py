@@ -630,7 +630,6 @@ def create_dashboard(df, X, vocabulary):
         If you find this useful, valuable, or interesting, consider supporting further work via my <a target="_blank" rel="noopener noreferrer" href="https://ko-fi.com/arckaynine">Ko-fi</a>.<br>
         Urza's Research Desk is unofficial Fan Content permitted under the Fan Content Policy. Not approved/endorsed by Wizards. Portions of the materials used are property of Wizards of the Coast. ©Wizards of the Coast LLC.<br>
         ''',
-        # width=150,
     )
     
     # Create layout groups

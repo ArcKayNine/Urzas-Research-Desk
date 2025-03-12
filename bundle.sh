@@ -1,14 +1,25 @@
 # Run the processing and save in a zip.
 #
 echo "Processing data..."
-python process_data.py
+formats=(
+    Standard
+    Pioneer
+    Modern
+    Legacy
+    Vintage
+)
+for i in "${formats[@]}"; do
+    mkdir processed_data
+    mkdir docs/$i
 
-zip docs/processed_data.zip processed_data/*
+    python process_data.py $i
+    zip docs/$i/processed_data.zip processed_data/*
+done
 
 # Convert to pyodide
 #
 echo "Converting to pyodide..."
-panel convert index.py --to pyodide-worker --out docs/
+panel convert FormatAnalysis.py --to pyodide-worker --out docs/
 
 # Add in the header information we need.
 # This includes unpacking the zipped data and 
