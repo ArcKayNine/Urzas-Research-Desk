@@ -5,8 +5,6 @@ formats=(
     Standard
     Pioneer
     Modern
-    Legacy
-    Vintage
 )
 for i in "${formats[@]}"; do
     mkdir docs/$i
