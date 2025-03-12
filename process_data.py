@@ -372,4 +372,4 @@ def process_mtg_data(lookback_days=365, fmt='modern'):
     print('Data saved, done')
 
 if __name__ == '__main__':
-    process_mtg_data()#lookback_days=30)
+    process_mtg_data(fmt='standard')#lookback_days=30)
