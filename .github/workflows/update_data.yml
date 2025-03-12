@@ -30,7 +30,6 @@ jobs:
       - name: Process data
         run: |
           mkdir processed_data
-          mkdir docs
           ./bundle.sh
           
       - name: Deploy to GitHub Pages

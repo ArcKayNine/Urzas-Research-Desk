@@ -9,7 +9,6 @@ formats=(
     Vintage
 )
 for i in "${formats[@]}"; do
-    mkdir processed_data
     mkdir docs/$i
 
     python process_data.py $i
