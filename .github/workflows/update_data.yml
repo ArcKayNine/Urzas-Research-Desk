@@ -21,6 +21,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+          mkdir processed_data
 
       - name: Clone MTGODecklistCache
         run: |
@@ -30,8 +31,7 @@ jobs:
           
       - name: Process data
         run: |
-          mkdir processed_data
-          ./bundle.sh
+          timeout 15m ./bundle.sh
           
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
