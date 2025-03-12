@@ -12,6 +12,7 @@ for i in "${formats[@]}"; do
     python process_data.py $i
     echo "zipping"
     zip docs/$i/processed_data.zip processed_data/*
+    rm processed_data/*
 done
 
 # Convert to pyodide
