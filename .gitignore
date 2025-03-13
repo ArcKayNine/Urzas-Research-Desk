@@ -1,9 +1,7 @@
 .ipynb_*
 processed_data/*
 __pycache__/*
-*S_Store/
+*S_Stor*
 *.ipynb
-docs/*
-!docs/*.jpg
-!docs/*.html
-!docs/*.js
+docs/data_version.txt
+docs/*/*
