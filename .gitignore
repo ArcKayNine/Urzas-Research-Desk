@@ -1,6 +1,6 @@
 .ipynb_*
 processed_data/*
 __pycache__/*
-*S_Store/
+*S_Store*
 *.ipynb
 docs/
