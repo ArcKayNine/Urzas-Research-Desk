@@ -12,13 +12,12 @@ for i in "${formats[@]}"; do
     python process_data.py $i
     echo "zipping"
     zip docs/$i/processed_data.zip processed_data/*
-    rm processed_data/*
 done
 
 # Convert to pyodide
 #
 echo "Converting to pyodide..."
-panel convert FormatAnalysis.py --to pyodide-worker --out docs/
+panel convert FormatAnalysis.py --skip-embed --to pyodide-worker --out docs/
 
 # Add in the header information we need.
 # This includes unpacking the zipped data and 
