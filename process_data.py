@@ -127,16 +127,18 @@ def get_tournament_files(base_path='../MTGODecklistCache/Tournaments', lookback_
     
     return matching_files
 
-def process_mtg_data(lookback_days=365, fmt='modern'):
+def process_mtg_data(lookback_days=365, fmt='Modern'):
     """Process MTG tournament data and save results for dashboard consumption."""
-    
+
+    print(f'Processing {fmt} tournament files')
+
     # Initialize empty DataFrame
     df = pd.DataFrame()
     
     # Process tournament files
-    print('Tournament Files')
     tournament_path = Path('../MTGODecklistCache/Tournaments/')
-    for path in tqdm(get_tournament_files(tournament_path, lookback_days, fmt)):
+    # Add tqdm back here if needed.
+    for path in get_tournament_files(tournament_path, lookback_days, fmt.lower()):
         try:
             with open(path) as f:
                 data = json.load(f)
@@ -337,7 +339,7 @@ def process_mtg_data(lookback_days=365, fmt='modern'):
         # 'num_clusters': len(set(cluster_labels)) - (1 if -1 in cluster_labels else 0)
     }
     
-    with open('processed_data/metadata.json', 'w') as f:
+    with open(f'processed_data/metadata.json', 'w') as f:
         json.dump(metadata, f)
     
     df['Date'] = df['Date'].astype(str)
@@ -349,18 +351,18 @@ def process_mtg_data(lookback_days=365, fmt='modern'):
         'feature_names': vectorizer.get_feature_names_out().tolist()
     }
     
-    with open('processed_data/deck_data.json', 'w') as f:
+    with open(f'processed_data/deck_data.json', 'w') as f:
         json.dump(output_data, f)
     
     # Save matrices
-    scipy.sparse.save_npz('processed_data/card_vectors.npz', X)
+    scipy.sparse.save_npz(f'processed_data/card_vectors.npz', X)
     # np.save('processed_data/umap_embedding.npy', X_umap)
     
     # Save transformers data
     vectorizer_data = {
         'vocabulary': vectorizer.vocabulary_
     }
-    with open('processed_data/vectorizer.json', 'w') as f:
+    with open(f'processed_data/vectorizer.json', 'w') as f:
         json.dump(vectorizer_data, f)
         
     # iwt_data = {
@@ -372,4 +374,9 @@ def process_mtg_data(lookback_days=365, fmt='modern'):
     print('Data saved, done')
 
 if __name__ == '__main__':
-    process_mtg_data(fmt='standard')#lookback_days=30)
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("format", help="Format to process", default='Modern')
+    args = parser.parse_args()
+
+    process_mtg_data(fmt=args.format)#lookback_days=30)
