@@ -7,8 +7,8 @@ JS_IN_FUNC = '''console.log("Packages loaded!");
   self.postMessage({type: 'status', msg: 'Reading Data'});
   console.log('Starting application with format:', appFormat);
     
-  // Use the format for your fetch
-  let zipResponse = await fetch(`${appFormat}/processed_data.zip`);
+  // Fetch the format data we want
+  let zipResponse = await fetch(`${appFormat}.zip`);
   let zipBinary = await zipResponse.arrayBuffer();
   self.pyodide.unpackArchive(zipBinary, "zip");
   console.log("Data loaded!");'''

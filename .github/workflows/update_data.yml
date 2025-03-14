@@ -21,15 +21,21 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          mkdir processed_data
 
-      - name: Clone MTGODecklistCache
+      # - name: Clone MTGODecklistCache
+      #   run: |
+      #     cd ../
+      #     git clone https://github.com/Badaro/MTGODecklistCache.git
+      #     cd -
+
+      - name: Clone Processed
         run: |
           cd ../
-          git clone https://github.com/Badaro/MTGODecklistCache.git
+          git clone https://github.com/JEGolding/UrzasResearchDesk_Processing.git
           cd -
+          cp ../UrzasResearchDesk_Processing/*.zip docs/
           
-      - name: Process data
+      - name: Build WASM
         run: |
           ./bundle.sh
           

@@ -1,18 +1,18 @@
 # Run the processing and save in a zip.
 #
-echo "Processing data..."
-formats=(
-    Standard
-    # Pioneer
-    # Modern
-)
-for i in "${formats[@]}"; do
-    mkdir docs/$i
-    echo "running process_data.py"
-    python process_data.py $i
-    echo "zipping"
-    zip docs/$i/processed_data.zip processed_data/*
-done
+# echo "Processing data..."
+# formats=(
+#     Standard
+#     # Pioneer
+#     # Modern
+# )
+# for i in "${formats[@]}"; do
+#     mkdir docs/$i
+#     echo "running process_data.py"
+#     python process_data.py $i
+#     echo "zipping"
+#     zip docs/$i/processed_data.zip processed_data/*
+# done
 
 # Convert to pyodide
 #
