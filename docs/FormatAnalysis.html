@@ -125,24 +125,6 @@ document.addEventListener('DOMContentLoaded', (event) => {
     }
   </script>
   
-  <!-- Google tag (gtag.js) -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-95C5QTVN8T"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-
-    gtag('config', 'G-95C5QTVN8T');
-  </script>
-  <link rel="stylesheet" href="https://mtgify.org/dist/autocard.css" />
-  <script src="https://mtgify.org/dist/autocard.js"></script>
-  <script>
-    MTGIFY_CONFIG = {
-      linkSource: "scryfall",
-      imgSource: "scryfall",
-    }
-  </script>
-  
   <body class="pn-loading pn-arc">
 <fast-design-system-provider id="body-design-provider" use-defaults>
   <div id="container">
@@ -175,7 +157,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
 	  </fast-tooltip>
 	</div>
 	<div class="pn-busy-container" id="busy-container">
-	  <div id="4b5d97a4-02f5-49cf-9b2d-ea66dcb2327e" data-root-id="p1013" style="display: contents;"></div>
+	  <div id="257aa284-eb46-4e37-ac11-7ccb96a61c26" data-root-id="p1013" style="display: contents;"></div>
 	</div>
 	<fast-tooltip anchor="busy-container" position="left">
 	  Busy Indicator
@@ -186,7 +168,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
     <div class="row" id="content">
       <div class="sidenav " id="sidebar">
 	<ul class="nav flex-column">
-	  <div id="1fea0663-d357-4e43-8f1a-1391699432e7" data-root-id="p1104" style="display: contents;"></div>
+	  <div id="06107ebe-be9b-4637-abfc-58615931333c" data-root-id="p1104" style="display: contents;"></div>
 	</ul>
       </div>
 
@@ -198,7 +180,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
 		<path d="M4.5 11H3v4h4v-1.5H4.5V11zM3 7h1.5V4.5H7V3H3v4zm10.5 6.5H11V15h4v-4h-1.5v2.5zM11 3v1.5h2.5V7H15V3h-4z"/>
 	      </svg>
 	    </span>
-	    <div id="e5edda96-d080-4d03-a1a3-5334abfc1940" data-root-id="p1014" style="display: contents;"></div>
+	    <div id="319f3a30-4995-42c5-b8b4-1ed57619a0c1" data-root-id="p1014" style="display: contents;"></div>
 	  </fast-card>
 	</div>
       </div>
@@ -240,10 +222,10 @@ document.addEventListener('DOMContentLoaded', (event) => {
   }
 </script>
 
-<div id="e9030985-0c82-4173-bba6-f40ab4576365" data-root-id="p1008" style="display: contents;"></div>
-<div id="f10a4fe2-7449-4667-a109-9fe8d1e3cdfe" data-root-id="p1010" style="display: contents;"></div>
-<div id="7f07e5ab-d857-46d2-820e-3f748df5cf92" data-root-id="p1002" style="display: contents;"></div>
-<div id="3fec9419-e2ce-416f-915e-f327094811c7" data-root-id="p1011" style="display: contents;"></div>
+<div id="731050a2-f412-40c9-9e2f-144c83293a49" data-root-id="p1008" style="display: contents;"></div>
+<div id="b4e8c476-29d7-4988-9b18-22bebbe0dd19" data-root-id="p1010" style="display: contents;"></div>
+<div id="aceafede-b36f-4019-bce5-05eee672d82e" data-root-id="p1002" style="display: contents;"></div>
+<div id="e8db923d-cf55-4085-9306-3b79edb6850d" data-root-id="p1011" style="display: contents;"></div>
 
 
   
@@ -251,16 +233,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
       const urlParams = new URLSearchParams(window.location.search);
       const format = urlParams.get('format') || 'Standard';
 
-      const urlParams = new URLSearchParams(window.location.search);
-      const format = urlParams.get('format') || 'Standard';
-
       const pyodideWorker = new Worker("./FormatAnalysis.js");
-      pyodideWorker.postMessage({
-        type: 'init',
-        params: {
-            format: format
-        }
-      });
       pyodideWorker.postMessage({
         type: 'init',
         params: {

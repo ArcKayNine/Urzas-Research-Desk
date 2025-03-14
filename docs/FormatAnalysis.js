@@ -13,19 +13,6 @@ self.addEventListener('message', function(e) {
     // Handle other messages...
 });
 
-// Global variable to store the format
-let appFormat = 'Standard'; // Default value
-
-// Listen for messages from the main thread
-self.addEventListener('message', function(e) {
-    if (e.data.type === 'init' && e.data.params) {
-        // Store the format parameter
-        appFormat = e.data.params.format || 'Standard';
-        console.log('Received format parameter:', appFormat);
-    }
-    // Handle other messages...
-});
-
 function sendPatch(patch, buffers, msg_id) {
   self.postMessage({
     type: 'patch',
@@ -64,14 +51,6 @@ async function startApplication() {
     }
   }
   console.log("Packages loaded!");
-  self.postMessage({type: 'status', msg: 'Reading Data'});
-  console.log('Starting application with format:', appFormat);
-    
-  // Fetch the format data we want
-  let zipResponse = await fetch(`${appFormat}.zip`);
-  let zipBinary = await zipResponse.arrayBuffer();
-  self.pyodide.unpackArchive(zipBinary, "zip");
-  console.log("Data loaded!");
   self.postMessage({type: 'status', msg: 'Reading Data'});
   console.log('Starting application with format:', appFormat);
     
