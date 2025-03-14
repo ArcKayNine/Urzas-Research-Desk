@@ -31,7 +31,7 @@ jobs:
       - name: Clone Processed
         run: |
           cd ../
-          git clone https://github.com/JEGolding/UrzasResearchDesk_Processing.git
+          git clone https://github.com/ArcKayNine/UrzasResearchDesk_Processing.git
           cd -
           cp ../UrzasResearchDesk_Processing/*.zip docs/
           
