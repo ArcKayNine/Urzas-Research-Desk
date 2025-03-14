@@ -1,5 +1,4 @@
 .ipynb_*
-processed_data/*
 __pycache__/*
 *S_Stor*
 *.ipynb
