@@ -16,7 +16,7 @@ pn.extension(
     'tabulator', 
     sizing_mode="stretch_width", 
     throttled=True, 
-    js_files={'autocard': 'https://mtgify.org/dist/autocard.js'},
+    js_files={'hover': 'hover.js'},
 )
 hv.extension('bokeh')
 
@@ -24,37 +24,6 @@ from scipy import sparse
 from scipy.stats import binomtest
 
 __version__ = 20250308
-
-# Create a Card API service (using Scryfall API)
-#
-class CardService:
-    def __init__(self, app_name="UrzasResearchDesk/1.0"):
-        self.app_name = f'UrzasResearchDesk/{__version__}'
-        self.headers = {
-            'User-Agent': self.app_name,
-            'Accept': 'application/json;q=0.9,*/*;q=0.8'
-        }
-    
-    def get_card_image_url(self, card_name):
-        # Query Scryfall API for card info with proper headers
-        #
-        try:
-            response = requests.get(
-                f"https://api.scryfall.com/cards/named?fuzzy={card_name}",
-                headers=self.headers,
-                timeout=10
-            )
-            if response.status_code == 200:
-                data = response.json()
-                # Get normal size image
-                #
-                return data.get('image_uris', {}).get('normal', '')
-            else:
-                print(f"Error fetching card {card_name}: {response.status_code}")
-                return ''
-        except Exception as e:
-            print(f"Exception when fetching card {card_name}: {str(e)}")
-            return ''
 
 class MTGAnalyzer(param.Parameterized):
     selected_cards = param.List(default=[], doc="Cards required in deck")
@@ -65,12 +34,12 @@ class MTGAnalyzer(param.Parameterized):
     valid_rows = param.Array(default=np.array([]), doc="Selected indices")
     valid_wr_rows = param.Array(default=np.array([]), doc="Selected indices with valid wr")
     
-    def __init__(self, df, card_vectors, vocabulary, **params):
+    def __init__(self, df, card_vectors, vocabulary, oracleid_lookup, **params):
         super().__init__(**params)
         self.df = df
         self.X = card_vectors
         self.feature_names = vocabulary
-        self.card_service = CardService()
+        self.oracleid_lookup = oracleid_lookup
         self._initialize_card_list()
         self.find_valid_rows()
         
@@ -79,23 +48,19 @@ class MTGAnalyzer(param.Parameterized):
         self.card_options = sorted(list(set(
             [name.replace('_SB', '') for name in self.feature_names.keys()]
         )))
-
-    def card_name_formatter(self, cell):
-        card_name = cell['value']
-        image_url = self.card_service.get_card_image_url(card_name)
-
-        # Return HTML with data attribute for the image URL
-        #
-        return f"""<div class="card-name" data-card-image-url="{image_url}">{card_name}</div>"""
     
     @param.depends('date_range', 'selected_cards', 'excluded_cards', watch=True)
     def find_valid_rows(self):
         """
-        Find row indices where specified logical combinations of column pairs exist.
+        Find row indices where specified logical combinations of cards are present.
         """
 
         row_mask = np.ones(self.X.shape[0], dtype=bool)
         
+        # We need to handle things a bit awkwardly here to account for cards being in either main or sideboard.
+        # This is because each card when present in the sideboard is stored as {CARD}_SB.
+        #
+
         for pair_idx, pair in enumerate(
             [(self.feature_names.get(c), self.feature_names.get(f"{c}_SB")) for c in self.selected_cards]
             # + [(self.feature_names.get(self.selected_card), self.feature_names.get(f"{self.selected_card}_SB"))]
@@ -224,7 +189,7 @@ class MTGAnalyzer(param.Parameterized):
 
         # Handle for when we have more than 4 of a card.
         # We should be able to aggregate to 4+ without losing value.
-        # Mono color standard or limited decks are the only real issue here.
+        # Mono color standard or limited decks are the only real issue here, where basics show up >4x.
         #
         if any(counts_df.columns>4):
             counts_df['4+'] = np.nansum(counts_df[[col for col in counts_df.columns if col>=4]], axis=1)
@@ -273,16 +238,29 @@ class MTGAnalyzer(param.Parameterized):
         # Then do the name column.
         formatters['Card'] = {'type': 'html'}
 
+        def card_name_formatter(card_name):
+            # Return HTML with data attribute for the image URL
+            #
+            return f"""<hover-card oracleId="{self.oracleid_lookup.get(card_name)}">{card_name}</hover-card><br>"""
+
         mb_counts_df = mb_counts_df.reset_index()
-        mb_counts_df['Card'] = mb_counts_df['Card'].apply(hover_card_html)
+        mb_counts_df['Card'] = mb_counts_df['Card'].apply(card_name_formatter)
         sb_counts_df = sb_counts_df.reset_index()
-        sb_counts_df['Card'] = sb_counts_df['Card'].apply(hover_card_html)
+        sb_counts_df['Card'] = sb_counts_df['Card'].apply(card_name_formatter)
 
         mb_table = pn.widgets.Tabulator(
-            mb_counts_df, formatters=formatters, pagination='local', show_index=False,
+            mb_counts_df, 
+            formatters=formatters, 
+            pagination='local', 
+            show_index=False,
+            disabled=True,
         )
         sb_table = pn.widgets.Tabulator(
-            sb_counts_df, formatters=formatters, pagination='local', show_index=False,
+            sb_counts_df, 
+            formatters=formatters, 
+            pagination='local', 
+            show_index=False,
+            disabled=True,
         )
     
         return pn.Row(
@@ -298,16 +276,19 @@ class MTGAnalyzer(param.Parameterized):
      
     @param.depends('selected_card', 'valid_rows')
     def get_card_analysis(self):
+        """Analyse the prevalence of a specific card, quantity distribution."""
+
         if not self.selected_card:
-            return pn.pane.Markdown("Select a card and enable correlation view to see analysis")
+            return pn.pane.Markdown("Select a card to see analysis")
             
-        # Calculate correlation matrix for main/sideboard copies
         mb_idx = self.feature_names.get(self.selected_card)
         sb_idx = self.feature_names.get(f"{self.selected_card}_SB")
         
         if (mb_idx is None) and (sb_idx is None):
             return pn.pane.Markdown("Card not found in dataset")
         
+        # We need to handle for when the card shows up just in sb/mb/both.
+        #
         if mb_idx is None:
             mb_copies = [np.nan]
             _, _, sb_copies = sparse.find(self.X[self.valid_rows][:, sb_idx])
@@ -325,8 +306,16 @@ class MTGAnalyzer(param.Parameterized):
             n_decks = len(d)
 
         bins = np.arange(-0.5, np.nanmax([np.nanmax(mb_copies), np.nanmax(sb_copies), 5]), 1)
-        mb_y, _ = np.histogram(mb_copies, bins, density=True)
-        sb_y, _ = np.histogram(sb_copies, bins, density=True)
+        # mb_y, _ = np.histogram(mb_copies, bins, density=True)
+        # sb_y, _ = np.histogram(sb_copies, bins, density=True)
+
+        mb_y, _ = np.histogram(mb_copies, bins)
+        mb_y[0] += self.valid_rows.shape[0] - n_decks
+        mb_y = mb_y / mb_y.sum()
+
+        sb_y, _ = np.histogram(sb_copies, bins)
+        sb_y[0] += self.valid_rows.shape[0] - n_decks
+        sb_y = sb_y / sb_y.sum()
 
         return hv.Bars(
             pd.DataFrame({
@@ -339,13 +328,18 @@ class MTGAnalyzer(param.Parameterized):
         ).opts(
             width=400,
             height=400,
-            # multi_level=False,
             title=f"Qtty Frequency",
+            toolbar=None, 
+            default_tools=[],
+            active_tools=[],
         )
     
     @param.depends('selected_card', 'valid_wr_rows')
     def get_winrate_analysis(self):
-        """Todo: Error bars, total."""
+        """Perform card quantity based win rate analysis.
+        Error bars are confidence interval on the binomial test.
+        """
+
         if not self.selected_card:
             return pn.pane.Markdown("Select a card to see win rate analysis")
             
@@ -355,6 +349,9 @@ class MTGAnalyzer(param.Parameterized):
             return pn.pane.Markdown("Card not found in dataset")
         
         plots = list()
+
+        # Handle differently if the card doesn't show up in main/side.
+        #
         
         mb_idx = self.feature_names.get(self.selected_card)
         if mb_idx is not None:    
@@ -424,12 +421,12 @@ class MTGAnalyzer(param.Parameterized):
             
             plots.append(hv.Scatter(
                 sb_win_rates, 'copies', 'winrate', label='Sideboard',
-            ).opts(size=7,))
+            ).opts(size=7, toolbar=None, default_tools=[],))
             plots.append(hv.ErrorBars(
                 sb_win_rates, 'copies', vdims=['winrate', 'errmin', 'errmax'],
-            ))
+            ).opts(toolbar=None, default_tools=[],))
 
-        # Add helper lines.
+        # Add helper lines for context, 50% and the average wr of selected decks.
         #
         wins = self.df.loc[self.valid_wr_rows]['Wins'].sum()
         total = wins + self.df.loc[self.valid_wr_rows]['Losses'].sum()
@@ -437,8 +434,18 @@ class MTGAnalyzer(param.Parameterized):
         # return hv.Curve([(0.5, 0.5),(5.5, 0.5)], 'copies', label='50% wr').opts(color='k', line_dash='dotted')
 
         plots.extend([
-            hv.Curve([(-0.5, 0.5),(4.5, 0.5)], 'copies', 'winrate', label='50% wr').opts(color='k', line_dash='dotted'),
-            hv.Curve([(-0.5, wr),(4.5, wr)], 'copies', 'winrate', label='Deck average').opts(color='k', line_dash='dashed')
+            hv.Curve([(-0.5, 0.5),(4.5, 0.5)], 'copies', 'winrate', label='50% wr').opts(
+                color='k', 
+                line_dash='dotted',
+                toolbar=None, 
+                default_tools=[],
+            ),
+            hv.Curve([(-0.5, wr),(4.5, wr)], 'copies', 'winrate', label='Deck average').opts(
+                color='k', 
+                line_dash='dashed',
+                toolbar=None, 
+                default_tools=[],
+            )
         ])
                 
         # Create line plot using HoloViews
@@ -450,6 +457,11 @@ class MTGAnalyzer(param.Parameterized):
             xlabel='Number of Copies',
             xlim=(-0.5, 4.5),
             ylim=(-0.1, 1.1),
+            toolbar=None,
+            default_tools=[],
+            active_tools=[],
+            legend_position='bottom_left',
+            legend_cols=4,
         )
         
         return win_rate_plot
@@ -470,7 +482,12 @@ def load_data(data_path='processed_data', lookback_days=365):
     Returns:
     --------
     tuple
-        (DataFrame with deck data, sparse matrix of card counts, fitted CountVectorizer vocabulary)
+        (
+            DataFrame with deck data, 
+            sparse matrix of card counts, 
+            fitted CountVectorizer vocabulary,
+            dictionary for oracleid lookups,
+        )
     """
     # Load the preprocessed data
     with open(Path(data_path) / 'deck_data.json', 'r') as f:
@@ -494,12 +511,16 @@ def load_data(data_path='processed_data', lookback_days=365):
     # Load and reconstruct vectorizer
     with open(Path(data_path) / 'vectorizer.json', 'r') as f:
         vectorizer_data = json.load(f)
+
+    # Load oracleid lookup
+    with open(Path(data_path) / 'card_data.json', 'r') as f:
+        oracleid_lookup = json.load(f)
     
     # vectorizer = CountVectorizer()
     # vectorizer.vocabulary_ = vectorizer_data['vocabulary']
     # vectorizer.fixed_vocabulary_ = True
     
-    return df, X, vectorizer_data['vocabulary']
+    return df, X, vectorizer_data['vocabulary'], oracleid_lookup
 
 def sparse_column_value_counts(sparse_matrix, normalize=True):
     """
@@ -519,6 +540,7 @@ def sparse_column_value_counts(sparse_matrix, normalize=True):
         If normalize=True, counts are replaced with frequencies.
     """
     # Convert to CSC for efficient column access
+    #
     if not sparse.isspmatrix_csc(sparse_matrix):
         csc_matrix = sparse_matrix.tocsc()
     else:
@@ -529,20 +551,24 @@ def sparse_column_value_counts(sparse_matrix, normalize=True):
     
     for col_idx in range(n_cols):
         # Get column data and row indices
+        #
         start = csc_matrix.indptr[col_idx]
         end = csc_matrix.indptr[col_idx + 1]
         data = csc_matrix.data[start:end]
         
         # Count explicitly stored values
+        #
         counter = Counter(data)
         
         # Add count for zeros (elements not explicitly stored)
+        #
         explicit_entries = end - start
         zeros_count = n_rows - explicit_entries
         if zeros_count > 0:
             counter[0] = zeros_count
         
         # Normalize if requested
+        #
         if normalize:
             total = n_rows
             counter = {k: v / total for k, v in counter.items()}
@@ -568,20 +594,13 @@ def vertical_bar_html(value):
         </div>
     """
 
-def hover_card_html(card):
-    """
-    Wrap a card to use mtgify's autocard. See link for docco
-    https://mtgify.org
-    """
-    return f"""
-        <auto-card>{card}</auto-card>
-    """
-
 # Create the dashboard
-def create_dashboard(df, X, vocabulary):
-    analyzer = MTGAnalyzer(df, X, vocabulary)
+#
+def create_dashboard(df, X, vocabulary, oracleid_lookup):
+    analyzer = MTGAnalyzer(df, X, vocabulary, oracleid_lookup)
     
     # Create card selection widget
+    #
     card_select = pn.widgets.MultiChoice(
         name='Required Cards',
         options=analyzer.card_options,
@@ -591,6 +610,7 @@ def create_dashboard(df, X, vocabulary):
     )
 
     # Create card selection widget
+    #
     card_exclude = pn.widgets.MultiChoice(
         name='Excluded Cards',
         options=analyzer.card_options,
@@ -600,6 +620,7 @@ def create_dashboard(df, X, vocabulary):
     )
     
     # Create date range selector
+    #
     date_range = pn.widgets.DateRangeSlider(
         name='Date Range',
         start=df['Date'].min(),
@@ -609,14 +630,15 @@ def create_dashboard(df, X, vocabulary):
     )
     
     # Create card analysis widgets
+    #
     card_analysis = pn.widgets.Select(
         name='Analyze Card',
         options=[''] + analyzer.card_options,
-        # value=[''],##
         sizing_mode='stretch_width'
     )
     
     # Link widgets to analyzer parameters
+    #
     card_select.link(analyzer, value='selected_cards')
     card_exclude.link(analyzer, value='excluded_cards')
     card_analysis.link(analyzer, value='selected_card')
@@ -633,6 +655,7 @@ def create_dashboard(df, X, vocabulary):
     )
     
     # Create layout groups
+    #
     controls = pn.Column(
         pn.pane.Markdown("## MTG Deck Analysis"),
         pn.pane.Markdown("To filter down the decks you're looking at, select cards that are required in the 75, and cards that cannot be in the 75."),
@@ -661,6 +684,7 @@ def create_dashboard(df, X, vocabulary):
     )
     
     # Create template
+    #
     template = pn.template.FastListTemplate(
         title="Urza's Research Desk",
         sidebar=[controls],
@@ -670,7 +694,8 @@ def create_dashboard(df, X, vocabulary):
                 analysis_view,
                 # TODO
                 # Temporal analysis (moving average population + wr)
-                sizing_mode='stretch_width'
+                sizing_mode='stretch_width',
+                dynamic=True, # Only render the active tab.
             ),
         ],
     )
@@ -679,6 +704,6 @@ def create_dashboard(df, X, vocabulary):
 
 
 # if __name__ == '__main__':
-df, X, vocabulary = load_data()
-dashboard = create_dashboard(df, X, vocabulary)
+df, X, vocabulary, oracleid_lookup = load_data()
+dashboard = create_dashboard(df, X, vocabulary, oracleid_lookup)
 dashboard.servable()

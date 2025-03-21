@@ -68,14 +68,6 @@ HTML_HEADER = '''</head>
 
     gtag('config', 'G-95C5QTVN8T');
   </script>
-  <link rel="stylesheet" href="https://mtgify.org/dist/autocard.css" />
-  <script src="https://mtgify.org/dist/autocard.js"></script>
-  <script>
-    MTGIFY_CONFIG = {
-      linkSource: "scryfall",
-      imgSource: "scryfall",
-    }
-  </script>
   '''
 
 html_file = Path('docs/FormatAnalysis.html')

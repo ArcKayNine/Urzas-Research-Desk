@@ -13,7 +13,3 @@ python -m http.server
 ```
 
 and navigate to 127.0.0.1:8000
-
-
-Pretty much ready to go with Modern and Standard. 
-Should work pulling from the second repo but untested.
