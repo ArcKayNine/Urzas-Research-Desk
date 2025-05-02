@@ -18,6 +18,7 @@ TODO
 - Loading messages
 
 DONE (Pending testing)
+- Handle for when no selected decks play 0 coppies of any card.
 
 DONE
 - Lock light/dark mode.

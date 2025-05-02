@@ -200,6 +200,10 @@ class MTGAnalyzer(param.Parameterized):
             counts_df = counts_df.rename(columns={0:'0',1:'1',2:'2',3:'3',4:'4'})
             col_list = ['0','1','2','3','4']
 
+        for col in col_list:
+            if col not in counts_df.columns:
+                counts_df[col] = 0
+
         counts_df = counts_df[col_list]
         counts_df.fillna(0)
 
