@@ -96,7 +96,7 @@ jobs:
         uses: dawidd6/action-download-artifact@v3
         with:
           workflow: update_modern.yml
-          name: modern-data
+          name: modern-processed-data
           path: ./temp-data
           if_no_artifact_found: warn
           
@@ -104,7 +104,7 @@ jobs:
         uses: dawidd6/action-download-artifact@v3
         with:
           workflow: update_standard.yml  
-          name: standard-data
+          name: standard-processed-data
           path: ./temp-data
           if_no_artifact_found: warn
           
@@ -112,7 +112,7 @@ jobs:
         uses: dawidd6/action-download-artifact@v3
         with:
           workflow: update_pioneer.yml
-          name: pioneer-data
+          name: pioneer-processed-data
           path: ./temp-data
           if_no_artifact_found: warn
 
