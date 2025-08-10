@@ -12,8 +12,7 @@ TODO
 - Archetype bundles, potentially from Badaro.
 - Reset all selections option.
 - Plotting accessibility features (colours and fill/marker styles, not just colour).
-- Bug: Unholy Annex // Ritual Chamber and Unholy Annex && Ritual Chamber both show up in the data.
-- Investigate https://rtyley.github.io/bfg-repo-cleaner/ to clean up repos over time so they don't get massive.
+- Bug: "Unholy Annex // Ritual Chamber" and "Unholy Annex && Ritual Chamber" both show up in the data.
 - Show last data read time
 - Loading messages
 

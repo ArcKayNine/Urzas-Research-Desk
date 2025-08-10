@@ -1,0 +1,56 @@
+name: Update Modern
+on:
+  schedule:
+    - cron: '0 0 * * *'  # Run daily
+  workflow_dispatch:
+
+jobs:
+  update-modern:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9.15'
+
+    - name: Add swap space
+      run: |
+        sudo fallocate -l 8G /swapfile
+        sudo chmod 600 /swapfile
+        sudo mkswap /swapfile
+        sudo swapon /swapfile
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        mkdir processed_data
+
+    - name: Clone MTGODecklistCache and AtomicCards.json
+      run: |
+        cd ../
+        git clone https://github.com/fbettega/MTG_decklistcache.git --depth 1
+        curl https://mtgjson.com/api/v5/AtomicCards.json > AtomicCards.json
+        cd -
+        
+    - name: Process data
+      run: |
+        echo "running process_data.py Modern"
+        python process_data.py Modern
+        echo "zipping processed data"
+        zip -r Modern.zip processed_data/
+
+    - name: Upload processed data as artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: modern-processed-data
+        path: Modern.zip
+        retention-days: 10  # Keep for 10 days, adjust as needed
+        
+    - name: Show artifact info
+      run: |
+        echo "Processed data uploaded as artifact: modern-processed-data"
+        echo "Artifact contains: Modern.zip"
+        ls -la Modern.zip
