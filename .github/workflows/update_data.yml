@@ -92,12 +92,16 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Set up file structure
+        run: |
+          mkdir -p docs
+
       - name: Download all processed data artifacts
         uses: dawidd6/action-download-artifact@v3
         with:
           workflow: update_modern.yml
           name: modern-processed-data
-          path: ./temp-data
+          path: ./docs
           if_no_artifact_found: warn
           
       - name: Download Standard data
@@ -105,7 +109,7 @@ jobs:
         with:
           workflow: update_standard.yml  
           name: standard-processed-data
-          path: ./temp-data
+          path: ./docs
           if_no_artifact_found: warn
           
       - name: Download Pioneer data  
@@ -113,25 +117,8 @@ jobs:
         with:
           workflow: update_pioneer.yml
           name: pioneer-processed-data
-          path: ./temp-data
+          path: ./docs
           if_no_artifact_found: warn
-
-      - name: Extract and organize data
-        run: |
-          mkdir -p docs
-          cd temp-data
-          
-          # Extract all zip files to docs directory
-          for zipfile in *.zip; do
-            if [ -f "$zipfile" ]; then
-              echo "Extracting $zipfile"
-              unzip -o "$zipfile" -d ../docs/
-            fi
-          done
-          
-          cd ..
-          echo "Extracted data files:"
-          ls -la docs/
           
       - name: Build WASM
         run: |
