@@ -8,6 +8,9 @@ on:
       - "Update Pioneer Data"
     types: [completed]
     branches: [main]  # Adjust if your default branch is different
+
+  schedule:
+    - cron: '30 0 * * *'  # Run daily
   
   # Allow manual deployment
   workflow_dispatch:
