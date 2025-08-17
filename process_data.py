@@ -127,13 +127,16 @@ def get_tournament_files(base_path='../MTG_decklistcache/Tournaments', lookback_
     
     return matching_files
 
-def process_mtg_data(lookback_days=182, fmt='Modern'):
+def process_mtg_data(lookback_days=30, fmt='Modern'):
     """Process MTG tournament data and save results for dashboard consumption."""
 
     print(f'Processing {fmt} tournament files')
 
-    # Initialize empty DataFrame
+    # Initialize empty DataFrame to store all tournament data,
+    # And one to store match results.
+    #
     df = pd.DataFrame()
+    res_df = pd.DataFrame()
     
     # Process tournament files
     tournament_path = Path('../MTG_decklistcache/Tournaments/')
@@ -146,9 +149,33 @@ def process_mtg_data(lookback_days=182, fmt='Modern'):
             deck_df = pd.DataFrame(data['Decks'])
             deck_df['Deck'] = data['Decks']
             deck_df['Tournament'] = path.name
-            
-            # Process standings
             standings_df = pd.DataFrame(data['Standings'])
+
+            # Process matches for matchup matrix.
+            #
+            if data['Rounds'] is not None and len(data['Rounds']):
+                round_df = pd.concat([pd.DataFrame(r['Matches']) for r in data['Rounds']], ignore_index=True)
+
+                # Some players we don't have deck lists for, so we shouldn't include them in the wr.
+                #
+                round_df = round_df[
+                    round_df['Player1'].isin(deck_df['Player']) & round_df['Player2'].isin(deck_df['Player'])
+                ]
+
+                round_df[['gW', 'gL', 'gD']] = round_df['Result'].str.split('-', expand=True).astype(int)
+
+                round_df['Date'] = f'{path.parent.parent.parent.name}-{path.parent.parent.name}-{path.parent.name}'
+                round_df['Tournament'] = path.name
+
+                res_df = pd.concat([
+                    res_df, 
+                    round_df[round_df['gW'] == 2][
+                        ['Date','Tournament','Player1','Player2']
+                    ]
+                ], ignore_index=True)
+            
+            # Process standings for overall wr.
+            #
             if standings_df.shape[0]:
                 if deck_df.loc[0, 'Result'].endswith('Place'):
                     deck_df['Rank'] = deck_df['Result'].str[:-8].astype(int)
@@ -163,14 +190,8 @@ def process_mtg_data(lookback_days=182, fmt='Modern'):
                 # TODO: Need to fix the below, currently melee doesn't have round results.
                 elif data['Rounds'] is not None and len(data['Rounds']):
                     # We need to build the win rates from the individual rounds.
+                    # To do so we'll use the round_df from above.
                     #
-                    round_df = pd.concat([pd.DataFrame(r['Matches']) for r in data['Rounds']], ignore_index=True)
-
-                    # Some players we don't have deck lists for, so we shouldn't include them in the wr.
-                    #
-                    round_df = round_df[
-                        round_df['Player1'].isin(deck_df['Player']) & round_df['Player2'].isin(deck_df['Player'])
-                    ]
                     
                     for i in deck_df.index:
                         # In order, 
@@ -308,7 +329,7 @@ def process_mtg_data(lookback_days=182, fmt='Modern'):
     # Save processed data
     output_data = {
         'decks': df[['Player', 'Wins', 'Losses', 'Date', 'Tournament', 'Invalid_WR']].to_dict('records'),
-        'clusters': [],
+        'results': res_df.to_dict('records'),
         'cluster_info': [],
         'feature_names': vectorizer.get_feature_names_out().tolist()
     }
