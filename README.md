@@ -1,5 +1,6 @@
 # UrzasResearchDesk
 A web app to display and interrogate win rates and aggregate archetypes from magic the gathering.
+Built on tcg-research-desk.
 [See the app here!](https://arckaynine.github.io/Urzas-Research-Desk/)
 
 ## Dev Notes
@@ -8,16 +9,18 @@ A web app to display and interrogate win rates and aggregate archetypes from mag
 There is some major functionality/things to investigate before making this more widely available:
 
 TODO
-- Card search on mobile.
-- Archetype bundles, potentially from Badaro.
-- Reset all selections option.
-- Plotting accessibility features (colours and fill/marker styles, not just colour).
 - Bug: "Unholy Annex // Ritual Chamber" and "Unholy Annex && Ritual Chamber" both show up in the data.
-- Show last data read time
-- Loading messages
+- Bug: "(BRO 16)", "(DAR 213)", etc. show up in data for Pioneer.
+- Remove pre-modern and premodern from modern
+- Process_data also saves a minimized AtomicCards.json
+- Process_data to also save opening clusters
+- Bug: All decks have valid WRs.
+
 
 DONE (Pending testing)
 - Handle for when no selected decks play 0 coppies of any card.
+- Archetype bundles.
+- Reset all selections option.
 
 DONE
 - Lock light/dark mode.
@@ -37,3 +40,11 @@ DONE
 ### V2 Goals
 - Temporal analysis.
 - (Option to) Remove mirrors.
+- Add tooltip to cards in html vis.
+- Re-calculate archetypes button.
+- Show last data read time
+- Easy time select on format boundaries (new set release, bans).
+- Filter to specific event.
+- Loading messages
+- Card search on mobile.
+- Plotting accessibility features (colours and fill/marker styles, not just colour).

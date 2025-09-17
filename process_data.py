@@ -8,7 +8,7 @@ from pathlib import Path
 from datetime import datetime, timedelta
 # import umap
 # import hdbscan
-from vectorizers.transformers import InformationWeightTransformer
+# from vectorizers.transformers import InformationWeightTransformer
 from tqdm import tqdm
 
 def fuzzy_join(df1, df2):
@@ -111,8 +111,10 @@ def get_tournament_files(base_path='../MTG_decklistcache/Tournaments', lookback_
         current_date += timedelta(days=1)
     
     # Create patterns for each date
+    # TODO Remove pre-modern and premodern from modern
+    #
     patterns = [
-        f"*/{date.year}/{date.month:02d}/{date.day:02d}/*{fmt}*.json"
+        f"*/{date.year}/{date.month:02d}/{date.day:02d}/*-{fmt}*.json"
         for date in date_range
     ]
     
@@ -127,7 +129,7 @@ def get_tournament_files(base_path='../MTG_decklistcache/Tournaments', lookback_
     
     return matching_files
 
-def process_mtg_data(lookback_days=30, fmt='Modern'):
+def process_mtg_data(lookback_days=182, fmt='Modern'):
     """Process MTG tournament data and save results for dashboard consumption."""
 
     print(f'Processing {fmt} tournament files')
@@ -162,17 +164,19 @@ def process_mtg_data(lookback_days=30, fmt='Modern'):
                     round_df['Player1'].isin(deck_df['Player']) & round_df['Player2'].isin(deck_df['Player'])
                 ]
 
-                round_df[['gW', 'gL', 'gD']] = round_df['Result'].str.split('-', expand=True).astype(int)
+                if round_df.shape[0]:
 
-                round_df['Date'] = f'{path.parent.parent.parent.name}-{path.parent.parent.name}-{path.parent.name}'
-                round_df['Tournament'] = path.name
+                    round_df[['gW', 'gL', 'gD']] = round_df['Result'].str.split('-', expand=True).astype(int)
 
-                res_df = pd.concat([
-                    res_df, 
-                    round_df[round_df['gW'] == 2][
-                        ['Date','Tournament','Player1','Player2']
-                    ]
-                ], ignore_index=True)
+                    round_df['Date'] = f'{path.parent.parent.parent.name}-{path.parent.parent.name}-{path.parent.name}'
+                    round_df['Tournament'] = path.name
+
+                    res_df = pd.concat([
+                        res_df, 
+                        round_df[round_df['gW'] == 2][
+                            ['Date','Tournament','Player1','Player2']
+                        ]
+                    ], ignore_index=True)
             
             # Process standings for overall wr.
             #
@@ -307,8 +311,8 @@ def process_mtg_data(lookback_days=30, fmt='Modern'):
     X = vectorizer.fit_transform(df['Deck'])
     
     # Apply Information Weight Transform
-    iwt = InformationWeightTransformer()
-    X_iwt = iwt.fit_transform(X)
+    # iwt = InformationWeightTransformer()
+    # X_iwt = iwt.fit_transform(X)
 
     print('Vectorized')
     

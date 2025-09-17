@@ -7,4 +7,4 @@ param==2.1.1
 scikit-learn==1.2.0
 scipy==1.13.1
 tqdm==4.66.4
-vectorizers==0.2
+tcg-research-desk==0.1.1

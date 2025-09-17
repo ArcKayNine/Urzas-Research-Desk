@@ -708,7 +708,7 @@ def create_dashboard(df, X, vocabulary, oracleid_lookup):
     return template
 
 
-# if __name__ == '__main__':
-df, X, vocabulary, oracleid_lookup = load_data()
-dashboard = create_dashboard(df, X, vocabulary, oracleid_lookup)
-dashboard.servable()
+if __name__ == '__main__':
+    df, X, vocabulary, oracleid_lookup = load_data()
+    dashboard = create_dashboard(df, X, vocabulary, oracleid_lookup)
+    dashboard.servable()
