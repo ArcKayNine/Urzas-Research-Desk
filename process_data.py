@@ -6,4 +6,4 @@ if __name__ == '__main__':
     parser.add_argument("format", help="Format to process", default='Modern')
     args = parser.parse_args()
 
-    process_mtg_data(fmt=args.format)#lookback_days=30)
+    process_mtg_data(fmt=args.format)# lookback_days=30)
