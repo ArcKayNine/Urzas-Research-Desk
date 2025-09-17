@@ -18,10 +18,6 @@ on:
   # Also deploy on changes to the site code (but not the data)
   push:
     branches: [main]
-    paths-ignore:
-      - 'process_data.py'
-      - 'requirements.txt'
-      - '.github/workflows/update_*.yml'
 
 # Sets permissions for GitHub Pages deployment
 permissions:
