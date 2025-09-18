@@ -3,7 +3,7 @@ from pathlib import Path
 # Grab the format data passed to the worker.
 # Then fetch and unzip the right data.
 #
-JS_IN_FUNC = '''console.log("Packages loaded!");
+JS_IN_FUNC = '''console.log("Environment loaded!");
   self.postMessage({type: 'status', msg: 'Reading Data'});
   console.log('Starting application with format:', appFormat);
     
@@ -34,7 +34,7 @@ self.addEventListener('message', function(e) {
 js_file = Path('docs/FormatAnalysis.js')
 js_file.write_text(
     js_file.read_text().replace(
-        'console.log("Packages loaded!");', 
+        'console.log("Environment loaded!");', 
         JS_IN_FUNC
     ).replace(
         'full/pyodide.js");',
