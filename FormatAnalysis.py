@@ -22,6 +22,23 @@ hv.extension('bokeh')
 from scipy import sparse
 from scipy.stats import binomtest
 
+
+import tcg_research_desk
+import scipy
+import sklearn
+import bokeh
+print(f"""
+{tcg_research_desk.__version__=}
+{pd.__version__=}
+{np.__version__=}
+{hv.__version__=}
+{pn.__version__=}
+{param.__version__=}
+{scipy.__version__=}
+{sklearn.__version__=}
+{bokeh.__version__=}
+""")
+
 # __version__ = 20250308
 
 class MTGAnalyzer(param.Parameterized):
