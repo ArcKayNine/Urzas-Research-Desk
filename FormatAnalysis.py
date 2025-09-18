@@ -23,6 +23,8 @@ hv.extension('bokeh')
 from scipy import sparse
 from scipy.stats import binomtest
 
+from tcg_research_desk import load_data
+
 __version__ = 20250308
 
 class MTGAnalyzer(param.Parameterized):
@@ -471,60 +473,60 @@ class MTGAnalyzer(param.Parameterized):
         return win_rate_plot
 
 
-# Load and process data
-def load_data(data_path='processed_data', lookback_days=365):
-    """
-    Load preprocessed MTG tournament data for dashboard visualization.
+# # Load and process data
+# def load_data(data_path='processed_data', lookback_days=365):
+#     """
+#     Load preprocessed MTG tournament data for dashboard visualization.
     
-    Parameters:
-    -----------
-    data_path : str
-        Path to the directory containing processed data files
-    lookback_days : int
-        Number of days of data to load (to avoid loading entire history)
+#     Parameters:
+#     -----------
+#     data_path : str
+#         Path to the directory containing processed data files
+#     lookback_days : int
+#         Number of days of data to load (to avoid loading entire history)
         
-    Returns:
-    --------
-    tuple
-        (
-            DataFrame with deck data, 
-            sparse matrix of card counts, 
-            fitted CountVectorizer vocabulary,
-            dictionary for oracleid lookups,
-        )
-    """
-    # Load the preprocessed data
-    with open(Path(data_path) / 'deck_data.json', 'r') as f:
-        data = json.load(f)
+#     Returns:
+#     --------
+#     tuple
+#         (
+#             DataFrame with deck data, 
+#             sparse matrix of card counts, 
+#             fitted CountVectorizer vocabulary,
+#             dictionary for oracleid lookups,
+#         )
+#     """
+#     # Load the preprocessed data
+#     with open(Path(data_path) / 'deck_data.json', 'r') as f:
+#         data = json.load(f)
         
-    # Convert to DataFrame
-    df = pd.DataFrame(data['decks'])
-    df['Date'] = pd.to_datetime(df['Date']).dt.date
+#     # Convert to DataFrame
+#     df = pd.DataFrame(data['decks'])
+#     df['Date'] = pd.to_datetime(df['Date']).dt.date
     
-    # Load cluster labels
-    # df['Cluster'] = data['clusters']
+#     # Load cluster labels
+#     # df['Cluster'] = data['clusters']
 
-    # Filter to recent data
-    cutoff_date = (pd.to_datetime('today') - pd.Timedelta(days=lookback_days)).date()
+#     # Filter to recent data
+#     cutoff_date = (pd.to_datetime('today') - pd.Timedelta(days=lookback_days)).date()
 
-    # Load card vectors
-    X = sparse.load_npz(Path(data_path) / 'card_vectors.npz')[df['Date'] >= cutoff_date]
+#     # Load card vectors
+#     X = sparse.load_npz(Path(data_path) / 'card_vectors.npz')[df['Date'] >= cutoff_date]
 
-    df = df[df['Date'] >= cutoff_date].reset_index()
+#     df = df[df['Date'] >= cutoff_date].reset_index()
     
-    # Load and reconstruct vectorizer
-    with open(Path(data_path) / 'vectorizer.json', 'r') as f:
-        vectorizer_data = json.load(f)
+#     # Load and reconstruct vectorizer
+#     with open(Path(data_path) / 'vectorizer.json', 'r') as f:
+#         vectorizer_data = json.load(f)
 
-    # Load oracleid lookup
-    with open(Path(data_path) / 'card_data.json', 'r') as f:
-        oracleid_lookup = json.load(f)
+#     # Load oracleid lookup
+#     with open(Path(data_path) / 'card_data.json', 'r') as f:
+#         oracleid_lookup = json.load(f)
     
-    # vectorizer = CountVectorizer()
-    # vectorizer.vocabulary_ = vectorizer_data['vocabulary']
-    # vectorizer.fixed_vocabulary_ = True
+#     # vectorizer = CountVectorizer()
+#     # vectorizer.vocabulary_ = vectorizer_data['vocabulary']
+#     # vectorizer.fixed_vocabulary_ = True
     
-    return df, X, vectorizer_data['vocabulary'], oracleid_lookup
+#     return df, X, vectorizer_data['vocabulary'], oracleid_lookup
 
 def sparse_column_value_counts(sparse_matrix, normalize=True):
     """
