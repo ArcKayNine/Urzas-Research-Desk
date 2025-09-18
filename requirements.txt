@@ -6,4 +6,4 @@ panel==1.4.5
 param==2.1.1
 scikit-learn==1.2.0
 scipy==1.13.1
-tcg-research-desk==0.1.12
+tcg-research-desk==0.1.13
