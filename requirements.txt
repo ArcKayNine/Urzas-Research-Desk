@@ -1,9 +1,9 @@
 tcg-research-desk>=0.1.15
-bokeh>=3.4.3
-holoviews>=1.19.1
-numpy>=1.23.5
-pandas>=2.2.2
-panel>=1.4.5
-param>=2.1.1
-scikit-learn>=1.2.0
-scipy>=1.13.1
+# bokeh>=3.4.3
+# holoviews>=1.19.1
+# numpy>=1.23.5
+# pandas>=2.2.2
+# panel>=1.4.5
+# param>=2.1.1
+# scikit-learn>=1.2.0
+# scipy>=1.13.1
