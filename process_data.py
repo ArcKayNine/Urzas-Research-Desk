@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 # import umap
 # import hdbscan
 # from vectorizers.transformers import InformationWeightTransformer
-from tqdm import tqdm
+# from tqdm import tqdm
 
 from tcg_research_desk import process_mtg_data
 
