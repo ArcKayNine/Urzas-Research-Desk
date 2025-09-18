@@ -1,4 +1,7 @@
 
+
+from tcg_research_desk import load_data
+
 from collections import Counter
 
 import pandas as pd
@@ -18,8 +21,6 @@ hv.extension('bokeh')
 
 from scipy import sparse
 from scipy.stats import binomtest
-
-from tcg_research_desk import load_data
 
 # __version__ = 20250308
 

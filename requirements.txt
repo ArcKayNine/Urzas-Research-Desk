@@ -1,4 +1,4 @@
-tcg-research-desk==0.1.11
+tcg-research-desk==0.1.12
 bokeh==3.4.3
 holoviews==1.19.1
 numpy==1.23.5
