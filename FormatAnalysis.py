@@ -7,9 +7,6 @@ import numpy as np
 import holoviews as hv
 import panel as pn
 
-import requests
-import json
-
 import param
 
 pn.extension(
