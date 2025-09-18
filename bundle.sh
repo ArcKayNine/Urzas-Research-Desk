@@ -17,7 +17,7 @@
 # Convert to pyodide
 #
 echo "Converting to pyodide..."
-panel convert FormatAnalysis.py --skip-embed --to pyodide-worker --out docs/
+panel convert FormatAnalysis.py --skip-embed --to pyodide-worker --out docs/ --requirements requirements.txt
 
 # Add in the header information we need.
 # This includes unpacking the zipped data and 
