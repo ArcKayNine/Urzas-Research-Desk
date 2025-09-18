@@ -21,7 +21,7 @@ from scipy.stats import binomtest
 
 from tcg_research_desk import load_data
 
-__version__ = 20250308
+# __version__ = 20250308
 
 class MTGAnalyzer(param.Parameterized):
     selected_cards = param.List(default=[], doc="Cards required in deck")
