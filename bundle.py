@@ -34,8 +34,10 @@ self.addEventListener('message', function(e) {
 js_file = Path('docs/FormatAnalysis.js')
 js_file.write_text(
     js_file.read_text().replace(
-        'console.log("Environment loaded!");', 
-        JS_IN_FUNC
+        # 'console.log("Environment loaded!");', 
+        # JS_IN_FUNC
+        "['FormatAnalysis.resources.zip']",
+        "[`${appFormat}.zip`]"
     ).replace(
         'full/pyodide.js");',
         JS_GLOBAL
