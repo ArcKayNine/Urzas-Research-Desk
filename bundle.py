@@ -1,17 +1,17 @@
 from pathlib import Path
 
-# Grab the format data passed to the worker.
-# Then fetch and unzip the right data.
-#
-JS_IN_FUNC = '''console.log("Environment loaded!");
-  self.postMessage({type: 'status', msg: 'Reading Data'});
-  console.log('Starting application with format:', appFormat);
+# # Grab the format data passed to the worker.
+# # Then fetch and unzip the right data.
+# #
+# JS_IN_FUNC = '''console.log("Environment loaded!");
+#   self.postMessage({type: 'status', msg: 'Reading Data'});
+#   console.log('Starting application with format:', appFormat);
     
-  // Fetch the format data we want
-  let zipResponse = await fetch(`${appFormat}.zip`);
-  let zipBinary = await zipResponse.arrayBuffer();
-  self.pyodide.unpackArchive(zipBinary, "zip");
-  console.log("Data loaded!");'''
+#   // Fetch the format data we want
+#   let zipResponse = await fetch(`${appFormat}.zip`);
+#   let zipBinary = await zipResponse.arrayBuffer();
+#   self.pyodide.unpackArchive(zipBinary, "zip");
+#   console.log("Data loaded!");'''
 
 # Set up global stuff to handle passing
 # format data around.
