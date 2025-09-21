@@ -12,6 +12,7 @@ from datetime import datetime, timedelta
 # from tqdm import tqdm
 
 from tcg_research_desk import process_mtg_data
+from tcg_research_desk.process_data import get_last_standard_change
 
 def fuzzy_join(df1, df2):
     """
@@ -364,4 +365,9 @@ if __name__ == '__main__':
     parser.add_argument("format", help="Format to process", default='Modern')
     args = parser.parse_args()
 
-    process_mtg_data(fmt=args.format)#lookback_days=30)
+    if args.format == "Standard":
+        last_date, lookback_days = get_last_standard_change()
+    else:
+        lookback_days = 182
+
+    process_mtg_data(fmt=args.format, lookback_days=lookback_days)
