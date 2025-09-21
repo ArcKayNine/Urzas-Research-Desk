@@ -368,6 +368,6 @@ if __name__ == '__main__':
     if args.format == "Standard":
         last_date, lookback_days = get_last_standard_change()
     else:
-        lookback_days = 182
+        lookback_days = 100
 
     process_mtg_data(fmt=args.format, lookback_days=lookback_days)
