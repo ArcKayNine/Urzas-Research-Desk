@@ -1,7 +1,7 @@
 # Deployment Notes
 In order to deploy there are a few steps:
 - Make sure MTGODecklistCache is updated.
-- Run process_data.py in the Processing repo.
+- Run process_data.py.# in the Processing repo.
 - Zip up the result and put it in docs/.
 - Run bundle.sh to add required headers.
 
