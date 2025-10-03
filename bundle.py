@@ -41,6 +41,12 @@ js_file.write_text(
     ).replace(
         'full/pyodide.js");',
         JS_GLOBAL
+    ).replace(
+        "`Installing environment`",
+        "Setting up python backend..."
+    ).replace(
+        "'Executing code'",
+        "Building dashboard..."
     ))
 
 # Read the format data from the url parameters,
