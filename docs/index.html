@@ -35,7 +35,7 @@
         .content-container {
             position: relative;
             z-index: 1;
-            padding: 2rem;
+            padding: 1rem;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
@@ -59,14 +59,15 @@
             margin-bottom: 2rem;
             max-width: 800px;
             width: 100%;
+            overflow: hidden; /* Clip the header to match card radius */
         }
-        
+
         .card-header {
             background-color: rgba(51, 51, 153, 0.8);
             color: white;
             font-weight: 600;
-            padding: 1rem;
-            border-radius: 10px 10px 0 0;
+            /* padding: 1rem; */
+            border-radius: 0; /* Remove radius since overflow handles it */
         }
         
         .format-buttons {
@@ -142,29 +143,6 @@
     <div class="content-container">
         <h1 class="page-title">Urza's Research Desk</h1>
         
-        <div class="card about-card">
-            <div class="card-header">
-                About
-            </div>
-            <div class="card-body">
-                <p>
-                    Urza's Research Desk brought to you by me, <a target="_blank" rel="noopener noreferrer" href="https://bsky.app/profile/arckaynine.bsky.social">ArcKayNine</a>.<br>
-                    This work is supported by my team, <a target="_blank" rel="noopener noreferrer" href="https://bsky.app/profile/busstop-mtg.bsky.social">Team Bus Stop</a>, and our sponsor MtG Bazaar. <!-- <a target="_blank" rel="noopener noreferrer" href="https://mtgbazaar.com.au">Josh and Pat's MtG Bazaar</a>.<br> -->
-                    All data comes courtesy of the excellent <a target="_blank" rel="noopener noreferrer" href="https://github.com/fbettega/MTG_decklistcache.git">MTG_decklistcache</a> by fbettega, built upon work by Badaro and others.<br>
-                    For more of my work, check out my blog, <a target="_blank" rel="noopener noreferrer" href="https://compulsiveresearchmtg.blogspot.com">CompulsiveResearchMtg</a>.<br>
-                    If you find this useful, valuable, or interesting, consider supporting further work via my <a target="_blank" rel="noopener noreferrer" href="https://ko-fi.com/arckaynine">Ko-fi</a>.<br>
-                    Homepage background art by <a target="_blank" rel="noopener noreferrer" href="http://www.matthew-stewart.com">Matt Stewart</a>
-                </p>
-                <div style="display: flex; justify-content: center;">
-                    <img src="MTG_Bazaar_LOGO_PNG-02.png" height="150" width="150">
-                    <img src="team_bus_stop_full_colour.png" height="150" width="150">
-                </div>
-                <p class="disclaimer">
-                    Urza's Research Desk is unofficial Fan Content permitted under the Fan Content Policy. Not approved/endorsed by Wizards. Portions of the materials used are property of Wizards of the Coast. ©Wizards of the Coast LLC.
-                </p>
-            </div>
-        </div>
-        
         <div class="card dashboard-card">
             <div class="card-header">
                 Select Format to Analyze
@@ -183,6 +161,30 @@
                 </div>
             </div>
         </div>
+
+        <div class="card about-card">
+            <div class="card-header">
+                About
+            </div>
+            <div class="card-body">
+                <div style="display: flex; justify-content: center;">
+                    <img src="MTG_Bazaar_LOGO_PNG-02.png" height="150" width="150">
+                    <img src="team_bus_stop_full_colour.png" height="150" width="150">
+                </div>
+                <p>
+                    Urza's Research Desk brought to you by me, <a target="_blank" rel="noopener noreferrer" href="https://bsky.app/profile/arckaynine.bsky.social">ArcKayNine</a>.<br>
+                    This work is supported by my team, <a target="_blank" rel="noopener noreferrer" href="https://bsky.app/profile/busstop-mtg.bsky.social">Team Bus Stop</a>, and our sponsor MtG Bazaar. <!-- <a target="_blank" rel="noopener noreferrer" href="https://mtgbazaar.com.au">Josh and Pat's MtG Bazaar</a>.<br> -->
+                    All data comes courtesy of the excellent <a target="_blank" rel="noopener noreferrer" href="https://github.com/fbettega/MTG_decklistcache.git">MTG_decklistcache</a> by fbettega, built upon work by Badaro and others.<br>
+                    For more of my work, check out my blog, <a target="_blank" rel="noopener noreferrer" href="https://compulsiveresearchmtg.blogspot.com">CompulsiveResearchMtg</a>.<br>
+                    If you find this useful, valuable, or interesting, consider supporting further work via my <a target="_blank" rel="noopener noreferrer" href="https://ko-fi.com/arckaynine">Ko-fi</a>.<br>
+                    Homepage background art by <a target="_blank" rel="noopener noreferrer" href="http://www.matthew-stewart.com">Matt Stewart</a>
+                </p>
+                <p class="disclaimer">
+                    Urza's Research Desk is unofficial Fan Content permitted under the Fan Content Policy. Not approved/endorsed by Wizards. Portions of the materials used are property of Wizards of the Coast. ©Wizards of the Coast LLC.
+                </p>
+            </div>
+        </div>
+
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
