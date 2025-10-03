@@ -43,10 +43,10 @@ js_file.write_text(
         JS_GLOBAL
     ).replace(
         "`Installing environment`",
-        "Setting up python backend..."
+        "`Setting up python backend...`"
     ).replace(
         "'Executing code'",
-        "Building dashboard..."
+        "'Building dashboard...'"
     ))
 
 # Read the format data from the url parameters,
