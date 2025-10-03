@@ -335,9 +335,8 @@ document.addEventListener('DOMContentLoaded', function() {
       posY = 0;
     } else {
       // For desktop, position near the element
-      const rect = element.getBoundingClientRect();
-      posX = rect.right;
-      posY = rect.top;
+      posX = x;
+      posY = y;
     }
     
     tooltip.style.backgroundImage = ''; // Clears old card image
