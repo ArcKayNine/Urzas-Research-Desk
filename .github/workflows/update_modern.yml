@@ -17,6 +17,14 @@ jobs:
 
     - name: Add swap space
       run: |
+        # Disable existing swap and remove swapfile if it exists
+        sudo swapoff -a 2>/dev/null || true
+        sudo rm -f /swapfile
+        
+        # Wait for any lingering processes to release filesystem resources
+        sleep 2
+        
+        # Now create the new swapfile
         sudo fallocate -l 8G /swapfile
         sudo chmod 600 /swapfile
         sudo mkswap /swapfile
