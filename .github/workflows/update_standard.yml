@@ -20,6 +20,9 @@ jobs:
 
     - name: Add swap space
       run: |
+        while lsof /swapfile; do
+            sleep 1
+        done
         sudo fallocate -l 8G /swapfile
         sudo chmod 600 /swapfile
         sudo mkswap /swapfile
