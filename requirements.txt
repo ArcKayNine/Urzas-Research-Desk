@@ -1,9 +1,9 @@
-tcg-research-desk>=0.1.18
+tcg-research-desk>=1.1.1
 bokeh==3.8.0
 holoviews==1.21.0
 numpy==2.2.6
 pandas==2.3.1
 panel==1.8.1
 param==2.2.1
-scipy==1.16.1
+scipy==1.16.2
 scikit-learn==1.7.1
