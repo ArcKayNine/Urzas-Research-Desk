@@ -39,7 +39,7 @@ jobs:
       run: |
         cd ../
         git clone https://github.com/fbettega/MTG_decklistcache.git --depth 1
-        curl https://mtgjson.com/api/v5/AtomicCards.json > AtomicCards.json
+        curl --retry 3 --retry-delay 10 --retry-connrefused https://mtgjson.com/api/v5/AtomicCards.json > AtomicCards.json
         cd -
         
     - name: Process data
