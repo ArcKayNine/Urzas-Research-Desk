@@ -1,6 +1,9 @@
 document.addEventListener('DOMContentLoaded', function() {
   console.log('DOMContentLoaded running')
 
+  // Panel's es-module-shims re-dispatches DOMContentLoaded, so this can run twice.
+  if (customElements.get('hover-card')) return;
+
   let hoverTimer;
   let leaveTimer;
 
@@ -363,22 +366,18 @@ document.addEventListener('DOMContentLoaded', function() {
   ///////////////////////////////////////////////////////
   // Matchup matrix tooltips
   // For mobile: toggle tooltip on tap
-  document.querySelectorAll('.winrate-cell-container').forEach(container => {
-    container.addEventListener('click', function(e) {
-      e.stopPropagation();
-      // Remove active class from all other winrate containers
-      document.querySelectorAll('.winrate-cell-container.active').forEach(other => {
-        if (other !== this) other.classList.remove('active');
-      });
-      // Toggle active class on this container
-      this.classList.toggle('active');
-    });
-  });
-  
-  // Close tooltips when clicking outside
-  document.addEventListener('click', function() {
-    document.querySelectorAll('.winrate-cell-container.active').forEach(container => {
-      container.classList.remove('active');
-    });
+  // The cells are rendered later, inside shadow roots, so delegate from the
+  // document and use composedPath to find them.
+  let activeWinrateCell = null;
+  document.addEventListener('click', function(e) {
+    const container = e.composedPath().find(el => el.classList && el.classList.contains('winrate-cell-container'));
+    // Clicking outside (or on another cell) closes the open tooltip
+    if (activeWinrateCell && activeWinrateCell !== container) {
+      activeWinrateCell.classList.remove('active');
+      activeWinrateCell = null;
+    }
+    if (container) {
+      activeWinrateCell = container.classList.toggle('active') ? container : null;
+    }
   });
 })

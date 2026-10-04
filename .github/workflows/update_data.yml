@@ -122,6 +122,9 @@ jobs:
           
       - name: Build WASM
         run: |
+          # Build against fresh data, the committed processed_data
+          # ages out of the lookback window.
+          unzip -o docs/Standard.zip
           ./bundle.sh
           
       - name: Prepare site for deployment

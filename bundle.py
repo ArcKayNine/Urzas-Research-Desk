@@ -32,6 +32,14 @@ self.addEventListener('message', function(e) {
 });'''
 
 js_file = Path('docs/FormatAnalysis.js')
+html_file = Path('docs/FormatAnalysis.html')
+
+# The replacements below contain their own search strings,
+# so running twice duplicates the declarations and breaks the page.
+#
+if 'let appFormat' in js_file.read_text() or 'const urlParams' in html_file.read_text():
+    raise RuntimeError('docs/FormatAnalysis.* already patched, re-run panel convert first.')
+
 js_file.write_text(
     js_file.read_text().replace(
         # 'console.log("Environment loaded!");', 
@@ -78,7 +86,6 @@ HTML_HEADER = '''</head>
   </script>
   '''
 
-html_file = Path('docs/FormatAnalysis.html')
 html_file.write_text(
     html_file.read_text().replace(
         '</head>', 
