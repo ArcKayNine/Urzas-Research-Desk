@@ -14,9 +14,9 @@ jobs:
         fetch-depth: 0 # otherwise, there would be errors pushing refs to the destination repository.
       
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v7
       with:
-        python-version: '3.13.7'
+        python-version: '3.13'
 
     - name: Add swap space
       run: |
@@ -38,10 +38,13 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
-    - name: Clone MTGODecklistCache and AtomicCards.json
+    - name: Clone Jiliac MTGODecklistCache and AtomicCards.json
       run: |
         cd ../
-        git clone https://github.com/fbettega/MTG_decklistcache.git --depth 1
+        # Jiliac's cache, sparse checkout of the last 7 months only (full repo is ~800MB).
+        # Cloned as MTG_decklistcache since tcg-research-desk expects that path.
+        git clone --depth 1 --filter=blob:none --sparse https://github.com/Jiliac/MTGODecklistCache.git MTG_decklistcache
+        git -C MTG_decklistcache sparse-checkout set --no-cone $(for i in $(seq 0 6); do date -d "$(date +%Y-%m-15) -$i month" +"/Tournaments/*/%Y/%m/"; done)
         curl --retry 3 --retry-delay 10 --retry-connrefused https://mtgjson.com/api/v5/AtomicCards.json > AtomicCards.json
         cd -
         
